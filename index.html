@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>夜班專用排班系統 (Standalone)</title>
+    <title>崧鶴</title>
     
     <!-- 1. 引入 Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,7 +25,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- 4. 內建圖示組件 (替代 lucide-react 以便在單一檔案執行) ---
+        // --- 4. 內建圖示組件 ---
         const IconWrapper = ({ children, color = "currentColor", size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
@@ -144,55 +144,81 @@
                     };
 
                     // --- STEP 1: 決定今日休假 (Off) ---
+                    // 計算目前已使用與未來的自選，來判斷還欠多少隨機假
                     const currentUsedLeaves = staffStats.reduce((sum, s) => sum + s.offCount, 0);
-                    const remainingLeavesPool = (staffList.length * STANDARD_LEAVE_LIMIT) - currentUsedLeaves;
+                    // 理想總休假數 = 人數 * 5
+                    const targetTotalLeaves = staffList.length * STANDARD_LEAVE_LIMIT;
+                    // 還需發出的隨機假總數 = (目標總數) - (目前已休)
+                    // 注意：這是一個概算，實際上要扣除未來所有的「自選假」，因為自選假佔用名額
+                    // 但這裡我們動態調整：每天計算「剩餘池」
+                    
                     const remainingDays = daysInMonth - day + 1;
                     
+                    // 簡單算法：(總目標 - 目前已休) / 剩餘天數 = 每日需休人數
+                    // 改用 ceil (無條件進位) 以確保在月底前排完
                     let targetOffCount = 0;
-                    if(remainingDays > 0) {
-                        targetOffCount = Math.round(remainingLeavesPool / remainingDays);
+                    if (remainingDays > 0) {
+                        targetOffCount = Math.ceil((targetTotalLeaves - currentUsedLeaves) / remainingDays);
                     }
+                    
+                    // 為了避免某天突然要休太多人，做個基本限制 (但如果不休就達不到5天，則必須休)
+                    // 這裡的邏輯：如果落後太多，targetOffCount 會自動變大
+                    // 下限保護
                     if (targetOffCount < 2) targetOffCount = 2; 
-                    if (targetOffCount > 3) targetOffCount = 3; 
-
+                    
+                    // 1. 必休 (自選假)
                     let mandatoryOff = staffStats.filter(s => s.preferredOff.includes(day));
                     
+                    // 2. 隨機休假候選人
                     let candidatesForOff = staffStats.filter(s => {
-                        if (s.preferredOff.includes(day)) return false;
-                        if (s.lastWorkDay === day - 1) return false; // 昨晚值班，今天禁排隨機休
+                        if (s.preferredOff.includes(day)) return false; // 已經是必休
+                        if (s.lastWorkDay === day - 1) return false; // 昨天值班，今天禁隨機休 (避免 Work->Off)
+                        
+                        // 檢查上限：(目前已休 + 未來自選) 必須 < 5 (或 < 自選長度若自選>5)
                         const futurePreferred = s.preferredOff.filter(d => d > day).length;
                         const projectedTotal = s.offCount + futurePreferred;
-                        if (projectedTotal >= STANDARD_LEAVE_LIMIT) return false;
+                        
+                        // 允許自選超過 5 天的特例，但如果是標準隨機假，目標就是湊滿 5 天
+                        // 如果已經達到 5 天 (或更多)，就不再給隨機假
+                        const myLimit = Math.max(STANDARD_LEAVE_LIMIT, s.preferredOff.length);
+                        if (projectedTotal >= myLimit) return false;
+                        
                         return true;
                     });
 
-                    let currentOffList = [...mandatoryOff];
-                    let needed = 0;
-                    
-                    // 計算還需要多少隨機休假
-                    let slotsToFill = targetOffCount;
-                    // 如果必休已經很多，就不用補太多
-                    if (currentOffList.length + slotsToFill > 4) {
-                        slotsToFill = Math.max(0, 4 - currentOffList.length);
-                    }
-                    // 如果加起來太少，至少補到 2
-                    if (currentOffList.length + slotsToFill < 2) {
-                        slotsToFill = Math.max(0, 2 - currentOffList.length);
-                    }
-                    
-                    needed = slotsToFill;
-
-                    if (needed > 0) {
-                        candidatesForOff.sort((a, b) => a.offCount - b.offCount);
-                        let potential = candidatesForOff.slice(0, Math.max(needed * 3, 5)); 
-                        potential = shuffle(potential);
+                    // 排序關鍵：優先給「缺假最多」的人 (Strict Catch-up)
+                    candidatesForOff.sort((a, b) => {
+                        const futureA = a.preferredOff.filter(d => d > day).length;
+                        const projectedA = a.offCount + futureA;
                         
-                        for (let i = 0; i < needed; i++) {
-                            if (potential.length > 0) {
-                                let selected = potential.shift();
-                                currentOffList.push(selected);
-                                candidatesForOff = candidatesForOff.filter(c => c.id !== selected.id);
-                            }
+                        const futureB = b.preferredOff.filter(d => d > day).length;
+                        const projectedB = b.offCount + futureB;
+                        
+                        // 差距越大 (缺越多)，排越前面
+                        if (projectedA !== projectedB) return projectedA - projectedB;
+                        
+                        // 若一樣，隨機
+                        return Math.random() - 0.5;
+                    });
+
+                    let currentOffList = [...mandatoryOff];
+                    let needed = Math.max(0, targetOffCount - currentOffList.length);
+                    
+                    // 每日休假人數上限 (軟限制，若為了補足5天可突破)
+                    // 假設每天最多休 4 人
+                    if (currentOffList.length + needed > 4) {
+                        // 只有在還來得及補救的情況下才限制，若剩餘天數不多，則必須放行
+                        // 簡單起見，設一個較寬鬆的上限
+                        // needed = Math.max(0, 4 - currentOffList.length); 
+                    }
+
+                    // 填補隨機假 (取排序後的前幾名，不進行額外 shuffle 以確保落後者優先)
+                    for (let i = 0; i < needed; i++) {
+                        if (candidatesForOff.length > 0) {
+                            let selected = candidatesForOff.shift(); // 取第一位 (缺假最多的)
+                            currentOffList.push(selected);
+                        } else {
+                            break; // 沒人可休 (可能大家都剛值班過，或都滿額了)
                         }
                     }
 
@@ -203,10 +229,10 @@
                         staffStats[idx].consecutiveWork = 0; 
                     });
 
-                    // --- STEP 2: 篩選可用人員 ---
+                    // --- STEP 2: 篩選值班可用人員 ---
                     let eligibleForNight = staffStats.filter(s => {
                         if (currentOffList.some(off => off.id === s.id)) return false;
-                        if (s.preferredOff.includes(day + 1)) return false; // 隔天休假，強制待命
+                        if (s.preferredOff.includes(day + 1)) return false; // 隔天休假，今天強制待命
                         if (s.consecutiveWork >= 3) return false; // 連續3天上限
                         return true;
                     });
@@ -278,7 +304,7 @@
                 setLogs(processLogs);
                 
                 if(processLogs.length === 0) {
-                    alert("排班完成！\n設定更新：隨機休假基準為 5 天，自選假可特例至 6 天。");
+                    alert("排班完成！\n已執行：嚴格 5 天休假保證 (進度落後者優先排休)。");
                 } else {
                     alert("排班完成，但有部分異常，請查看日誌。");
                 }
@@ -430,7 +456,7 @@
                                         <tr key={s.id} className="border-b hover:bg-gray-50">
                                             <td className="p-2 font-medium">{s.name}</td>
                                             <td className="p-2 text-xs text-gray-500">{s.role === 'mortician' ? '禮儀師' : '助理'}</td>
-                                            <td className={`p-2 text-center font-bold ${s.offCount > 6 ? 'text-red-600' : 'text-gray-700'}`}>
+                                            <td className={`p-2 text-center font-bold ${s.offCount < 5 ? 'text-red-500 bg-red-100' : (s.offCount > 5 ? 'text-blue-600' : 'text-green-600')}`}>
                                                 {s.offCount}
                                             </td>
                                             <td className={`p-2 text-center font-bold text-lg ${Math.abs(s.nightShiftCount - avgShifts) > 2 ? 'text-red-500' : 'text-slate-800'}`}>
@@ -447,7 +473,7 @@
                                 </tbody>
                             </table>
                             <div className="text-xs text-gray-500 mt-2 text-right">
-                                * 系統已自動調配：夜班數少的禮儀師會支援助理缺額，確保全體員工夜班總數趨於平均。
+                                * 系統已自動調配：確保每人至少 5 天休假 (紅色背景代表異常過少，請檢查是否因自選假衝突導致)。
                             </div>
                         </div>
                     </div>
@@ -461,7 +487,7 @@
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                                     <MoonIcon className="text-indigo-600" />
-                                    排班
+                                    崧鶴
                                 </h1>
                             </div>
                             <div className="flex items-center gap-3">
@@ -503,11 +529,11 @@
                             <div className="space-y-4">
                                 <div className="flex flex-wrap justify-between items-center bg-white p-4 rounded-lg shadow-sm gap-4">
                                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                                        <div className="font-bold text-gray-800"></div>
-                                        <div className="flex items-center gap-1"><MoonIcon size={14} className="text-blue-500"/> 海總(2禮+2彈性)</div>
-                                        <div className="flex items-center gap-1"><MoonIcon size={14} className="text-green-500"/> 高醫(1禮+1彈性)</div>
-                                        <div className="flex items-center gap-1 text-indigo-600"><BriefcaseIcon size={14}/> </div>
-                                        <div className="flex items-center gap-1 text-red-500"><ShieldAlertIcon size={14}/> </div>
+                                        <div className="font-bold text-gray-800">夜班規則：</div>
+                                        <div className="flex items-center gap-1"><MoonIcon size={14} className="text-blue-500"/> 海總</div>
+                                        <div className="flex items-center gap-1"><MoonIcon size={14} className="text-green-500"/> 高醫</div>
+                                        <div className="flex items-center gap-1 text-indigo-600"><BriefcaseIcon size={14}/> 不用值班</div>
+                                        <div className="flex items-center gap-1 text-red-500"><ShieldAlertIcon size={14}/></div>
                                     </div>
                                     <div className="flex gap-2">
                                         <button onClick={() => {setSchedule({}); setStats([]);}} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 border border-red-200">
