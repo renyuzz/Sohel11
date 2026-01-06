@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>崧鶴</title>
+    <title>崧鶴排班系統</title>
     
     <!-- 1. 引入 Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,7 +25,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- 4. 內建圖示組件 ---
+        // --- 4. 內建圖示組件 (完整定義) ---
         const IconWrapper = ({ children, color = "currentColor", size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
@@ -46,7 +46,7 @@
         const ChevronLeftIcon = (props) => <IconWrapper {...props}><path d="m15 18-6-6 6-6"/></IconWrapper>;
         const ChevronRightIcon = (props) => <IconWrapper {...props}><path d="m9 18 6-6-6-6"/></IconWrapper>;
 
-        // --- 5. 初始模擬資料 ---
+        // --- 5. 初始模擬資料 (修正：補回此段落) ---
         const INITIAL_STAFF = [
             { id: 1, name: '王世通', role: 'mortician', preferredOff: [] },
             { id: 2, name: '劉宗坤', role: 'mortician', preferredOff: [] },
@@ -63,6 +63,58 @@
             { id: 13, name: '李瀚雅', role: 'assistant', preferredOff: [] },
             { id: 14, name: '謝汶佳', role: 'assistant', preferredOff: [] },
         ];
+
+        // --- 台灣假日資料 (2024-2030 範例 + 固定假日) ---
+        const getTaiwanHoliday = (year, month, day) => {
+            // 固定國定假日 (month 是 0-based: 0=1月, 1=2月...)
+            if (month === 0 && day === 1) return '元旦';
+            if (month === 1 && day === 28) return '和平紀念日';
+            if (month === 3 && day === 4) return '兒童節';
+            if (month === 3 && day === 5) return '清明節';
+            if (month === 4 && day === 1) return '勞動節';
+            if (month === 9 && day === 10) return '國慶日';
+
+            // 農曆變動假日對照表 (Key格式: YYYY-M-D, M為0-based)
+            const lunarHolidays = {
+                // 2024
+                '2024-1-8': '小年夜', '2024-1-9': '除夕', '2024-1-10': '春節', 
+                '2024-1-11': '初二', '2024-1-12': '初三', '2024-1-13': '初四', '2024-1-14': '初五',
+                '2024-5-10': '端午節', '2024-8-17': '中秋節',
+                
+                // 2025
+                '2025-0-27': '小年夜', '2025-0-28': '除夕', '2025-0-29': '春節',
+                '2025-0-30': '初二', '2025-0-31': '初三', '2025-1-1': '初四', '2025-1-2': '初五',
+                '2025-4-31': '端午節', '2025-9-6': '中秋節',
+
+                // 2026
+                '2026-1-15': '小年夜', '2026-1-16': '除夕', '2026-1-17': '春節',
+                '2026-1-18': '初二', '2026-1-19': '初三', '2026-1-20': '初四', '2026-1-21': '初五',
+                '2026-5-19': '端午節', '2026-8-25': '中秋節',
+
+                // 2027
+                '2027-1-4': '小年夜', '2027-1-5': '除夕', '2027-1-6': '春節',
+                '2027-1-7': '初二', '2027-1-8': '初三', '2027-1-9': '初四', '2027-1-10': '初五',
+                '2027-5-9': '端午節', '2027-8-15': '中秋節',
+
+                // 2028
+                '2028-0-24': '小年夜', '2028-0-25': '除夕', '2028-0-26': '春節',
+                '2028-0-27': '初二', '2028-0-28': '初三', '2028-0-29': '初四', '2028-0-30': '初五',
+                '2028-4-28': '端午節', '2028-9-3': '中秋節',
+
+                // 2029
+                '2029-1-11': '小年夜', '2029-1-12': '除夕', '2029-1-13': '春節',
+                '2029-1-14': '初二', '2029-1-15': '初三', '2029-1-16': '初四', '2029-1-17': '初五',
+                '2029-5-16': '端午節', '2029-8-22': '中秋節',
+
+                // 2030
+                '2030-1-1': '小年夜', '2030-1-2': '除夕', '2030-1-3': '春節',
+                '2030-1-4': '初二', '2030-1-5': '初三', '2030-1-6': '初四', '2030-1-7': '初五',
+                '2030-5-5': '端午節', '2030-8-12': '中秋節',
+            };
+
+            const key = `${year}-${month}-${day}`;
+            return lunarHolidays[key];
+        };
 
         const App = () => {
             // --- 狀態管理 ---
@@ -149,8 +201,6 @@
                     // 理想總休假數 = 人數 * 5
                     const targetTotalLeaves = staffList.length * STANDARD_LEAVE_LIMIT;
                     // 還需發出的隨機假總數 = (目標總數) - (目前已休)
-                    // 注意：這是一個概算，實際上要扣除未來所有的「自選假」，因為自選假佔用名額
-                    // 但這裡我們動態調整：每天計算「剩餘池」
                     
                     const remainingDays = daysInMonth - day + 1;
                     
@@ -161,8 +211,6 @@
                         targetOffCount = Math.ceil((targetTotalLeaves - currentUsedLeaves) / remainingDays);
                     }
                     
-                    // 為了避免某天突然要休太多人，做個基本限制 (但如果不休就達不到5天，則必須休)
-                    // 這裡的邏輯：如果落後太多，targetOffCount 會自動變大
                     // 下限保護
                     if (targetOffCount < 2) targetOffCount = 2; 
                     
@@ -205,20 +253,17 @@
                     let needed = Math.max(0, targetOffCount - currentOffList.length);
                     
                     // 每日休假人數上限 (軟限制，若為了補足5天可突破)
-                    // 假設每天最多休 4 人
                     if (currentOffList.length + needed > 4) {
-                        // 只有在還來得及補救的情況下才限制，若剩餘天數不多，則必須放行
-                        // 簡單起見，設一個較寬鬆的上限
-                        // needed = Math.max(0, 4 - currentOffList.length); 
+                       // 僅作為緩衝，若必須趕進度則不限制
                     }
 
-                    // 填補隨機假 (取排序後的前幾名，不進行額外 shuffle 以確保落後者優先)
+                    // 填補隨機假
                     for (let i = 0; i < needed; i++) {
                         if (candidatesForOff.length > 0) {
                             let selected = candidatesForOff.shift(); // 取第一位 (缺假最多的)
                             currentOffList.push(selected);
                         } else {
-                            break; // 沒人可休 (可能大家都剛值班過，或都滿額了)
+                            break; 
                         }
                     }
 
@@ -344,10 +389,19 @@
                             const dateObj = new Date(year, month, day);
                             const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
                             
+                            const holidayName = getTaiwanHoliday(year, month, day);
+
                             return (
                                 <div key={day} className={`min-h-[180px] border rounded p-1 text-xs relative flex flex-col ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}>
                                     <div className="flex justify-between items-center mb-1 border-b pb-1">
-                                        <span className="font-bold text-base text-gray-700 ml-1">{day}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-base text-gray-700 ml-1">{day}</span>
+                                            {holidayName && (
+                                                <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded border border-red-200">
+                                                    {holidayName}
+                                                </span>
+                                            )}
+                                        </div>
                                         {daySchedule && daySchedule.off.length >= 1 ? 
                                             <CheckCircleIcon size={14} className="text-green-500" /> : 
                                             daySchedule && <ShieldAlertIcon size={14} className="text-red-500" />
@@ -487,7 +541,7 @@
                             <div>
                                 <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                                     <MoonIcon className="text-indigo-600" />
-                                    崧鶴
+                                    崧鶴排班
                                 </h1>
                             </div>
                             <div className="flex items-center gap-3">
