@@ -51,19 +51,19 @@
 
         // --- 5. 初始模擬資料 (已移除 洪湘葳) ---
         const INITIAL_STAFF = [
-            { id: 1, name: '王世通', role: 'mortician', preferredOff: [] },
-            { id: 2, name: '劉宗坤', role: 'mortician', preferredOff: [] },
-            { id: 3, name: '劉春榮', role: 'mortician', preferredOff: [] },
-            { id: 4, name: '陳柏融', role: 'mortician', preferredOff: [] },
-            { id: 5, name: '胡智欽', role: 'mortician', preferredOff: [] },
-            { id: 6, name: '王勇在', role: 'mortician', preferredOff: [] },
-            { id: 7, name: '馬育謙', role: 'mortician', preferredOff: [] },
-            { id: 9, name: '林俊宇', role: 'assistant', preferredOff: [] },
-            { id: 10, name: '童淙鈿', role: 'assistant', preferredOff: [] },
-            { id: 11, name: '劉惠婷', role: 'assistant', preferredOff: [] },
-            { id: 12, name: '徐暐智', role: 'assistant', preferredOff: [] },
-            { id: 13, name: '李瀚雅', role: 'assistant', preferredOff: [] },
-            { id: 14, name: '謝汶佳', role: 'assistant', preferredOff: [] },
+            { id: 1, name: '王世通', role: 'mortician', preferredOff: [], designatedShifts: [] },
+            { id: 2, name: '劉宗坤', role: 'mortician', preferredOff: [], designatedShifts: [] },
+            { id: 3, name: '劉春榮', role: 'mortician', preferredOff: [], designatedShifts: [] },
+            { id: 4, name: '陳柏融', role: 'mortician', preferredOff: [], designatedShifts: [] },
+            { id: 5, name: '胡智欽', role: 'mortician', preferredOff: [], designatedShifts: [] },
+            { id: 6, name: '王勇在', role: 'mortician', preferredOff: [], designatedShifts: [] },
+            { id: 7, name: '馬育謙', role: 'mortician', preferredOff: [], designatedShifts: [] },
+            { id: 9, name: '林俊宇', role: 'assistant', preferredOff: [], designatedShifts: [] },
+            { id: 10, name: '童淙鈿', role: 'assistant', preferredOff: [], designatedShifts: [] },
+            { id: 11, name: '劉惠婷', role: 'assistant', preferredOff: [], designatedShifts: [] },
+            { id: 12, name: '徐暐智', role: 'assistant', preferredOff: [], designatedShifts: [] },
+            { id: 13, name: '李瀚雅', role: 'assistant', preferredOff: [], designatedShifts: [] },
+            { id: 14, name: '謝汶佳', role: 'assistant', preferredOff: [], designatedShifts: [] },
         ];
 
         // --- 台灣假日資料 (簡化版) ---
@@ -90,6 +90,7 @@
             const [logs, setLogs] = useState([]);
             const [activeTab, setActiveTab] = useState('calendar'); 
             const [stats, setStats] = useState([]);
+            const [autoAdjustMode, setAutoAdjustMode] = useState(false); // 新增：連動調整模式
 
             const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
             const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
@@ -152,17 +153,67 @@
                 setSchedule({}); setStats([]); setLogs([]);
             };
 
-            // --- 排班演算法核心 ---
-            const generateSchedule = () => {
+            // --- 統計某日之前的所有數據 (用於連動調整時的基礎重建) ---
+            const buildStatsUpToDay = (currentSchedule, upToDay, currentStaffList) => {
+                let currentStats = currentStaffList.map(s => ({ 
+                    ...s, offCount: 0, nightShiftCount: 0, haizongCount: 0, gaoyiCount: 0, consecutiveWork: 0, lastWorkDay: -10 
+                }));
+
+                for (let d = 1; d <= upToDay; d++) {
+                    const dayAssign = currentSchedule[d];
+                    if (!dayAssign) {
+                        currentStats.forEach(s => s.consecutiveWork = 0);
+                        continue;
+                    }
+
+                    const hz = dayAssign.nightShift['海總'] || [];
+                    const gy = dayAssign.nightShift['高醫'] || [];
+                    const off = dayAssign.off || [];
+                    const workingIds = [...hz, ...gy].map(s => s.id);
+
+                    off.forEach(s => {
+                        const idx = currentStats.findIndex(st => st.id === s.id);
+                        if (idx > -1) {
+                            currentStats[idx].offCount++;
+                            currentStats[idx].consecutiveWork = 0;
+                        }
+                    });
+
+                    [...hz, ...gy].forEach(s => {
+                        const idx = currentStats.findIndex(st => st.id === s.id);
+                        if (idx > -1) {
+                            currentStats[idx].nightShiftCount++;
+                            currentStats[idx].consecutiveWork++;
+                            currentStats[idx].lastWorkDay = d;
+                            if (hz.some(h => h.id === s.id)) currentStats[idx].haizongCount++;
+                            else currentStats[idx].gaoyiCount++;
+                        }
+                    });
+
+                    currentStats.forEach(s => {
+                        if (!workingIds.includes(s.id) && !off.some(o => o.id === s.id)) {
+                            const idx = currentStats.findIndex(st => st.id === s.id);
+                            if (idx > -1) currentStats[idx].consecutiveWork = 0; 
+                        }
+                    });
+                }
+                return currentStats;
+            };
+
+            // --- 從特定日期開始排班 (支援全自動 或 拖曳後的局部重算) ---
+            const generateScheduleFrom = (baseSchedule, startDay, showAlert = true) => {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
                 const daysInMonth = getDaysInMonth(year, month);
-                let newSchedule = {};
+                let newSchedule = { ...baseSchedule };
                 let processLogs = [];
 
-                let staffStats = staffList.map(s => ({ 
-                    ...s, offCount: 0, nightShiftCount: 0, haizongCount: 0, gaoyiCount: 0, consecutiveWork: 0, lastWorkDay: -10, 
-                }));
+                // 清除從 startDay 開始的舊排班，準備重算
+                for (let d = startDay; d <= daysInMonth; d++) {
+                    delete newSchedule[d];
+                }
+
+                let staffStats = buildStatsUpToDay(newSchedule, startDay - 1, staffList);
 
                 const shuffle = (array) => {
                     let arr = [...array];
@@ -175,7 +226,7 @@
 
                 const STANDARD_LEAVE_LIMIT = 5; 
 
-                for (let day = 1; day <= daysInMonth; day++) {
+                for (let day = startDay; day <= daysInMonth; day++) {
                     let dailyAssignment = {
                         nightShift: { '海總': [], '高醫': [] },
                         off: [],
@@ -192,11 +243,43 @@
                         targetOffCount = Math.ceil((targetTotalLeaves - currentUsedLeaves) / remainingDays);
                     }
                     if (targetOffCount < 2) targetOffCount = 2; 
+
+                    // --- 解析當日指定值班 ---
+                    let designatedHz = [];
+                    let designatedGy = [];
+                    let designatedStandby = [];
+                    staffStats.forEach(s => {
+                        const dShift = s.designatedShifts?.find(ds => ds.date === day);
+                        if (dShift) {
+                            if (dShift.location === '海總') designatedHz.push(s);
+                            if (dShift.location === '高醫') designatedGy.push(s);
+                            if (dShift.location === '待命') designatedStandby.push(s);
+                        }
+                    });
                     
-                    let mandatoryOff = staffStats.filter(s => s.preferredOff.includes(day));
+                    // --- 決定今日休假 ---
+                    let mandatoryOff = staffStats.filter(s => {
+                        const isDesignatedToday = s.designatedShifts?.some(ds => ds.date === day);
+                        if (isDesignatedToday) return false; // 指定排班/待命優先，當日不可休
+                        
+                        if (s.preferredOff.includes(day)) return true;
+                        
+                        // 嚴格確保5天休假：若剩下可排休天數剛好等於缺的假，且今日沒被指定值班，強制排休
+                        if (s.offCount < STANDARD_LEAVE_LIMIT) {
+                            let availableFutureDays = 0;
+                            for (let d = day; d <= daysInMonth; d++) {
+                                if (!s.designatedShifts?.some(ds => ds.date === d)) availableFutureDays++;
+                            }
+                            if (availableFutureDays <= (STANDARD_LEAVE_LIMIT - s.offCount)) return true;
+                        }
+                        return false;
+                    });
+
                     let candidatesForOff = staffStats.filter(s => {
-                        if (s.preferredOff.includes(day)) return false;
-                        if (s.lastWorkDay === day - 1) return false;
+                        if (mandatoryOff.some(m => m.id === s.id)) return false;
+                        if (s.designatedShifts?.some(ds => ds.date === day)) return false; // 指定排班不可休
+                        if (s.lastWorkDay === day - 1) return false; // 昨天值班，今天盡量不隨機休
+                        
                         const futurePreferred = s.preferredOff.filter(d => d > day).length;
                         const projectedTotal = s.offCount + futurePreferred;
                         const myLimit = Math.max(STANDARD_LEAVE_LIMIT, s.preferredOff.length);
@@ -229,10 +312,13 @@
                         staffStats[idx].consecutiveWork = 0; 
                     });
 
+                    // --- 分配夜班 ---
                     let eligibleForNight = staffStats.filter(s => {
                         if (currentOffList.some(off => off.id === s.id)) return false;
+                        if (designatedHz.some(d => d.id === s.id) || designatedGy.some(d => d.id === s.id)) return false; // 已在指定名單
+                        if (designatedStandby.some(d => d.id === s.id)) return false; // 指定待命，不可排夜班
                         if (s.preferredOff.includes(day + 1)) return false;
-                        if (s.consecutiveWork >= 3) return false;
+                        if (s.consecutiveWork >= 2) return false; // 嚴格限制：最多連2天 (指定值班者不受此限)
                         return true;
                     });
 
@@ -245,21 +331,28 @@
                     };
 
                     let morticians = eligibleForNight.filter(s => s.role === 'mortician');
+                    
                     morticians = sortForBalance(morticians, 'haizongCount');
-                    const hzStrictMorts = morticians.splice(0, 2);
+                    const hzStrictMortsNeeded = Math.max(0, 2 - designatedHz.filter(s => s.role === 'mortician').length);
+                    const hzStrictMorts = morticians.splice(0, hzStrictMortsNeeded);
+                    
                     morticians = sortForBalance(morticians, 'gaoyiCount');
-                    const gyStrictMorts = morticians.splice(0, 1);
+                    const gyStrictMortsNeeded = Math.max(0, 1 - designatedGy.filter(s => s.role === 'mortician').length);
+                    const gyStrictMorts = morticians.splice(0, gyStrictMortsNeeded);
 
                     let assistants = eligibleForNight.filter(s => s.role === 'assistant');
                     let supportPool = [...morticians, ...assistants];
 
                     supportPool = sortForBalance(supportPool, 'haizongCount');
-                    const hzSupport = supportPool.splice(0, 2);
-                    supportPool = sortForBalance(supportPool, 'gaoyiCount');
-                    const gySupport = supportPool.splice(0, 1);
+                    const hzSupportNeeded = Math.max(0, 4 - designatedHz.length - hzStrictMorts.length);
+                    const hzSupport = supportPool.splice(0, hzSupportNeeded);
 
-                    const hzTeam = [...hzStrictMorts, ...hzSupport];
-                    const gyTeam = [...gyStrictMorts, ...gySupport];
+                    supportPool = sortForBalance(supportPool, 'gaoyiCount');
+                    const gySupportNeeded = Math.max(0, 2 - designatedGy.length - gyStrictMorts.length);
+                    const gySupport = supportPool.splice(0, gySupportNeeded);
+
+                    const hzTeam = [...designatedHz, ...hzStrictMorts, ...hzSupport];
+                    const gyTeam = [...designatedGy, ...gyStrictMorts, ...gySupport];
 
                     dailyAssignment.nightShift['海總'] = hzTeam;
                     dailyAssignment.nightShift['高醫'] = gyTeam;
@@ -290,12 +383,16 @@
                     newSchedule[day] = dailyAssignment;
                 }
 
-                setLogs(processLogs);
+                setLogs(prev => startDay === 1 ? processLogs : [...prev, ...processLogs]);
                 updateScheduleAndStats(newSchedule);
                 
-                if(processLogs.length === 0) alert("排班完成！\n已自動平衡夜班次數與休假天數。");
-                else alert("排班完成，但有部分異常（例如連假前後人力吃緊），請查看系統訊息並手動微調。");
+                if (showAlert) {
+                    if(processLogs.length === 0) alert("排班完成！\n已保證每人至少5天假，且正常排班連續不超過2天。");
+                    else alert("排班完成，但有部分異常（請查看系統訊息並手動微調）。");
+                }
             };
+
+            const generateSchedule = () => generateScheduleFrom({}, 1, true);
 
             // --- 拖曳功能事件 (Drag and Drop) ---
             const handleDragStart = (e, day, category, staffId) => {
@@ -359,7 +456,14 @@
 
                     // 放入目標區域
                     targetList.push(staffMember);
-                    updateScheduleAndStats(newSchedule);
+                    
+                    // 若開啟連動調整，則從變動發生的隔天開始自動重排
+                    const regenDay = Math.min(sourceDay, targetDay) + 1;
+                    if (autoAdjustMode && regenDay <= getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())) {
+                        generateScheduleFrom(newSchedule, regenDay, false);
+                    } else {
+                        updateScheduleAndStats(newSchedule);
+                    }
 
                 } catch (err) { console.error("Drop error", err); }
             };
@@ -382,11 +486,17 @@
                 const [recalledStaff] = offList.splice(randomIndex, 1);
                 
                 newSchedule[day].recall.push(recalledStaff);
-                updateScheduleAndStats(newSchedule);
+                
+                // 召回導致休假改變，若開啟連動調整，從明天開始重排補假
+                if (autoAdjustMode && day < getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())) {
+                    generateScheduleFrom(newSchedule, day + 1, false);
+                } else {
+                    updateScheduleAndStats(newSchedule);
+                }
             };
 
             // --- 人員管理 ---
-            const handleAddStaff = (name, role) => setStaffList([...staffList, { id: Date.now(), name, role, preferredOff: [] }]);
+            const handleAddStaff = (name, role) => setStaffList([...staffList, { id: Date.now(), name, role, preferredOff: [], designatedShifts: [] }]);
             const handleRemoveStaff = (id) => setStaffList(staffList.filter(s => s.id !== id));
             const togglePreferredOff = (staffId, day) => {
                 setStaffList(staffList.map(s => {
@@ -395,6 +505,22 @@
                     if (currentOff.includes(day)) return { ...s, preferredOff: currentOff.filter(d => d !== day) };
                     if (currentOff.length >= 6) { alert("每人每月最多選擇 6 天自選假"); return s; }
                     return { ...s, preferredOff: [...currentOff, day] };
+                }));
+            };
+
+            const addDesignatedShift = (staffId, date, location) => {
+                setStaffList(staffList.map(s => {
+                    if (s.id !== staffId) return s;
+                    const currentDS = s.designatedShifts || [];
+                    const filteredDS = currentDS.filter(ds => ds.date !== date);
+                    return { ...s, designatedShifts: [...filteredDS, { date, location }] };
+                }));
+            };
+
+            const removeDesignatedShift = (staffId, date) => {
+                setStaffList(staffList.map(s => {
+                    if (s.id !== staffId) return s;
+                    return { ...s, designatedShifts: (s.designatedShifts || []).filter(ds => ds.date !== date) };
                 }));
             };
 
@@ -646,10 +772,14 @@
                                 <div className="flex flex-wrap justify-between items-center bg-white p-4 rounded-lg shadow-sm gap-4">
                                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                                         <div className="font-bold text-gray-800">拖曳操作說明：</div>
-                                        <div className="flex items-center gap-1">✅</div>
-                                        <div className="flex items-center gap-1 text-red-500">🎲抽籤召回</div>
+                                        <div className="flex items-center gap-1">✅ 支援跨區、跨天任意拖曳</div>
+                                        <div className="flex items-center gap-1 text-red-500">🎲 點擊休假區可隨機抽籤召回</div>
                                     </div>
                                     <div className="flex gap-2">
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 bg-indigo-50 px-3 py-2 rounded-md hover:bg-indigo-100 border border-indigo-100 transition-colors">
+                                            <input type="checkbox" checked={autoAdjustMode} onChange={(e) => setAutoAdjustMode(e.target.checked)} className="w-4 h-4 text-indigo-600 rounded cursor-pointer" />
+                                            連動調整模式
+                                        </label>
                                         <button onClick={() => {setSchedule({}); setStats([]);}} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 border border-red-200">
                                             <Trash2Icon size={18} /> 清空
                                         </button>
@@ -689,6 +819,7 @@
                                                 <th className="p-3">姓名</th>
                                                 <th className="p-3">職位</th>
                                                 <th className="p-3">指定自選假</th>
+                                                <th className="p-3">指定排班 (夜班跳脫連2休)</th>
                                                 <th className="p-3 text-right">刪除</th>
                                             </tr>
                                         </thead>
@@ -706,6 +837,34 @@
                                                                     {Array.from({length: 31}, (_,i)=>i+1).map(d => !staff.preferredOff.includes(d) && <option key={d} value={d}>{d}號</option>)}
                                                                 </select>
                                                             )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-3">
+                                                        <div className="flex flex-wrap gap-1 items-center">
+                                                            {staff.designatedShifts?.map(ds => (
+                                                                <span key={ds.date} onClick={()=>removeDesignatedShift(staff.id, ds.date)} className={`px-2 py-1 rounded-full text-xs cursor-pointer flex items-center gap-1 ${ds.location === '待命' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}>
+                                                                    {ds.date}號 {ds.location} x
+                                                                </span>
+                                                            ))}
+                                                            <div className="flex items-center border rounded bg-white overflow-hidden shadow-sm">
+                                                                <select id={`ds-date-${staff.id}`} className="text-xs p-1 focus:outline-none bg-transparent cursor-pointer">
+                                                                    <option value="">日期</option>
+                                                                    {Array.from({length: 31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                                                                </select>
+                                                                <select id={`ds-loc-${staff.id}`} className="text-xs p-1 focus:outline-none bg-transparent border-l cursor-pointer">
+                                                                    <option value="海總">海總</option>
+                                                                    <option value="高醫">高醫</option>
+                                                                    <option value="待命">待命</option>
+                                                                </select>
+                                                                <button onClick={() => {
+                                                                    const d = document.getElementById(`ds-date-${staff.id}`).value;
+                                                                    const l = document.getElementById(`ds-loc-${staff.id}`).value;
+                                                                    if (d && l) {
+                                                                        addDesignatedShift(staff.id, parseInt(d), l);
+                                                                        document.getElementById(`ds-date-${staff.id}`).value = '';
+                                                                    }
+                                                                }} className="text-xs bg-gray-100 hover:bg-gray-200 p-1 px-2 border-l transition-colors">+</button>
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="p-3 text-right"><button onClick={()=>handleRemoveStaff(staff.id)} className="text-gray-400 hover:text-red-500"><Trash2Icon size={16}/></button></td>
