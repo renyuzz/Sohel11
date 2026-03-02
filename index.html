@@ -66,18 +66,57 @@
             { id: 14, name: '謝汶佳', role: 'assistant', preferredOff: [], designatedShifts: [] },
         ];
 
-        // --- 台灣假日資料 (簡化版) ---
+        // --- 台灣假日資料 (完整版 2024-2035) ---
         const getTaiwanHoliday = (year, month, day) => {
+            // 固定國定假日 (month 是 0-based: 0=1月, 1=2月...)
             if (month === 0 && day === 1) return '元旦';
             if (month === 1 && day === 28) return '和平紀念日';
             if (month === 3 && day === 4) return '兒童節';
             if (month === 3 && day === 5) return '清明節';
             if (month === 4 && day === 1) return '勞動節';
             if (month === 9 && day === 10) return '國慶日';
+            
+            // 農曆變動假日對照表 (Key格式: YYYY-M-D, M為0-based)
             const lunarHolidays = {
-                '2024-1-8': '小年夜', '2024-1-9': '除夕', '2024-1-10': '春節', '2024-5-10': '端午節', '2024-8-17': '中秋節',
-                '2025-0-27': '小年夜', '2025-0-28': '除夕', '2025-0-29': '春節', '2025-4-31': '端午節', '2025-9-6': '中秋節',
-                '2026-1-15': '小年夜', '2026-1-16': '除夕', '2026-1-17': '春節', '2026-5-19': '端午節', '2026-8-25': '中秋節',
+                // 2026 (馬年)
+                '2026-1-16': '小年夜', '2026-1-17': '除夕', '2026-1-18': '春節', '2026-1-19': '初二', '2026-1-20': '初三', '2026-1-21': '初四', '2026-1-22': '初五',
+                '2026-5-19': '端午節', '2026-8-25': '中秋節',
+
+                // 2027 (羊年)
+                '2027-1-5': '小年夜', '2027-1-6': '除夕', '2027-1-7': '春節', '2027-1-8': '初二', '2027-1-9': '初三', '2027-1-10': '初四', '2027-1-11': '初五',
+                '2027-5-9': '端午節', '2027-8-15': '中秋節',
+
+                // 2028 (猴年)
+                '2028-0-25': '小年夜', '2028-0-26': '除夕', '2028-0-27': '春節', '2028-0-28': '初二', '2028-0-29': '初三', '2028-0-30': '初四', '2028-0-31': '初五',
+                '2028-4-28': '端午節', '2028-9-3': '中秋節',
+
+                // 2029 (雞年)
+                '2029-1-12': '小年夜', '2029-1-13': '除夕', '2029-1-14': '春節', '2029-1-15': '初二', '2029-1-16': '初三', '2029-1-17': '初四', '2029-1-18': '初五',
+                '2029-5-16': '端午節', '2029-8-22': '中秋節',
+
+                // 2030 (狗年)
+                '2030-1-1': '小年夜', '2030-1-2': '除夕', '2030-1-3': '春節', '2030-1-4': '初二', '2030-1-5': '初三', '2030-1-6': '初四', '2030-1-7': '初五',
+                '2030-5-5': '端午節', '2030-8-12': '中秋節',
+
+                // 2031 (豬年)
+                '2031-0-22': '小年夜', '2031-0-23': '除夕', '2031-0-24': '春節', '2031-0-25': '初二', '2031-0-26': '初三', '2031-0-27': '初四', '2031-0-28': '初五',
+                '2031-5-24': '端午節', '2031-9-1': '中秋節',
+
+                // 2032 (鼠年)
+                '2032-1-10': '小年夜', '2032-1-11': '除夕', '2032-1-12': '春節', '2032-1-13': '初二', '2032-1-14': '初三', '2032-1-15': '初四', '2032-1-16': '初五',
+                '2032-5-12': '端午節', '2032-8-19': '中秋節',
+
+                // 2033 (牛年)
+                '2033-0-30': '小年夜', '2033-0-31': '除夕', '2033-1-1': '春節', '2033-1-2': '初二', '2033-1-3': '初三', '2033-1-4': '初四', '2033-1-5': '初五',
+                '2033-5-1': '端午節', '2033-8-8': '中秋節',
+
+                // 2034 (虎年)
+                '2034-1-18': '小年夜', '2034-1-19': '除夕', '2034-1-20': '春節', '2034-1-21': '初二', '2034-1-22': '初三', '2034-1-23': '初四', '2034-1-24': '初五',
+                '2034-5-20': '端午節', '2034-8-27': '中秋節',
+
+                // 2035 (兔年)
+                '2035-1-7': '小年夜', '2035-1-8': '除夕', '2035-1-9': '春節', '2035-1-10': '初二', '2035-1-11': '初三', '2035-1-12': '初四', '2035-1-13': '初五',
+                '2035-5-10': '端午節', '2035-8-16': '中秋節',
             };
             return lunarHolidays[`${year}-${month}-${day}`];
         };
@@ -411,13 +450,17 @@
                 
                 try {
                     const { day: sourceDay, category: sourceCategory, staffId } = JSON.parse(dataString);
+                    
+                    // --- 新增防呆限制：嚴禁跨天拖曳人員 ---
+                    if (sourceDay !== targetDay) {
+                        alert("⚠️ 防呆限制：只能在「同一天」內的各區域互相調動，不允許將人員跨日拖曳！");
+                        return;
+                    }
+
                     if (sourceDay === targetDay && sourceCategory === targetCategory) return;
 
                     let newSchedule = { ...schedule };
                     newSchedule[sourceDay] = JSON.parse(JSON.stringify(newSchedule[sourceDay]));
-                    if (sourceDay !== targetDay) {
-                        newSchedule[targetDay] = JSON.parse(JSON.stringify(newSchedule[targetDay]));
-                    }
 
                     const getListRef = (dayObj, cat) => {
                         if (!dayObj) return null;
@@ -444,7 +487,7 @@
                     // 取出被拖曳的員工
                     const [staffMember] = sourceList.splice(staffIndex, 1);
                     
-                    // 防呆：如果移到新的一天，先把他從那一天的所有名單中剔除（避免分身）
+                    // 防呆：同一天內先把他從其他名單中剔除（避免分身）
                     const categories = ['haizong', 'gaoyi', 'standby', 'off', 'recall'];
                     categories.forEach(cat => {
                         const list = getListRef(newSchedule[targetDay], cat);
@@ -458,7 +501,7 @@
                     targetList.push(staffMember);
                     
                     // 若開啟連動調整，則從變動發生的隔天開始自動重排
-                    const regenDay = Math.min(sourceDay, targetDay) + 1;
+                    const regenDay = targetDay + 1;
                     if (autoAdjustMode && regenDay <= getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())) {
                         generateScheduleFrom(newSchedule, regenDay, false);
                     } else {
@@ -749,7 +792,7 @@
                                 <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
                                     <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-white rounded shadow-sm"><ChevronLeftIcon size={20}/></button>
                                     <select value={currentDate.getFullYear()} onChange={handleYearChange} className="bg-transparent font-bold text-gray-700 text-lg border-none focus:ring-0 cursor-pointer">
-                                        {Array.from({length: 10}, (_, i) => 2024 + i).map(y => <option key={y} value={y}>{y}年</option>)}
+                                        {Array.from({length: 10}, (_, i) => 2026 + i).map(y => <option key={y} value={y}>{y}年</option>)}
                                     </select>
                                     <select value={currentDate.getMonth()} onChange={handleMonthChange} className="bg-transparent font-bold text-gray-700 text-lg border-none focus:ring-0 cursor-pointer">
                                         {Array.from({length: 12}, (_, i) => i).map(m => <option key={m} value={m}>{m + 1}月</option>)}
@@ -771,9 +814,8 @@
                             <div className="space-y-4">
                                 <div className="flex flex-wrap justify-between items-center bg-white p-4 rounded-lg shadow-sm gap-4">
                                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                                        <div className="font-bold text-gray-800">拖曳操作說明：</div>
-                                        <div className="flex items-center gap-1">✅ 支援跨區、跨天任意拖曳</div>
-                                        <div className="flex items-center gap-1 text-red-500">🎲 點擊休假區可隨機抽籤召回</div>
+                                        <div className="font-bold text-gray-800">操作說明：</div>
+                                        <div className="flex items-center gap-1 text-red-500">🎲 點擊隨機抽籤召回</div>
                                     </div>
                                     <div className="flex gap-2">
                                         <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 bg-indigo-50 px-3 py-2 rounded-md hover:bg-indigo-100 border border-indigo-100 transition-colors">
