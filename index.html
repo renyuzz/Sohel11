@@ -49,26 +49,25 @@
         const ChevronLeftIcon = (props) => <IconWrapper {...props}><path d="m15 18-6-6 6-6"/></IconWrapper>;
         const ChevronRightIcon = (props) => <IconWrapper {...props}><path d="m9 18 6-6-6-6"/></IconWrapper>;
 
-        // --- 5. 初始模擬資料 (已移除 洪湘葳) ---
+        // --- 5. 初始模擬資料 (加入 fixedLocation) ---
         const INITIAL_STAFF = [
-            { id: 1, name: '王世通', role: 'mortician', preferredOff: [], designatedShifts: [] },
-            { id: 2, name: '劉宗坤', role: 'mortician', preferredOff: [], designatedShifts: [] },
-            { id: 3, name: '劉春榮', role: 'mortician', preferredOff: [], designatedShifts: [] },
-            { id: 4, name: '陳柏融', role: 'mortician', preferredOff: [], designatedShifts: [] },
-            { id: 5, name: '胡智欽', role: 'mortician', preferredOff: [], designatedShifts: [] },
-            { id: 6, name: '王勇在', role: 'mortician', preferredOff: [], designatedShifts: [] },
-            { id: 7, name: '馬育謙', role: 'mortician', preferredOff: [], designatedShifts: [] },
-            { id: 9, name: '林俊宇', role: 'assistant', preferredOff: [], designatedShifts: [] },
-            { id: 10, name: '童淙鈿', role: 'assistant', preferredOff: [], designatedShifts: [] },
-            { id: 11, name: '劉惠婷', role: 'assistant', preferredOff: [], designatedShifts: [] },
-            { id: 12, name: '徐暐智', role: 'assistant', preferredOff: [], designatedShifts: [] },
-            { id: 13, name: '李瀚雅', role: 'assistant', preferredOff: [], designatedShifts: [] },
-            { id: 14, name: '謝汶佳', role: 'assistant', preferredOff: [], designatedShifts: [] },
+            { id: 1, name: '王世通', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 2, name: '劉宗坤', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 3, name: '劉春榮', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 4, name: '陳柏融', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 5, name: '胡智欽', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 6, name: '王勇在', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 7, name: '馬育謙', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 9, name: '林俊宇', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 10, name: '童淙鈿', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 11, name: '劉惠婷', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 12, name: '徐暐智', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 13, name: '李瀚雅', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 14, name: '謝汶佳', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
         ];
 
-        // --- 台灣假日資料 (完整版 2024-2035) ---
+        // --- 台灣假日資料 (完整版 2026-2035) ---
         const getTaiwanHoliday = (year, month, day) => {
-            // 固定國定假日 (month 是 0-based: 0=1月, 1=2月...)
             if (month === 0 && day === 1) return '元旦';
             if (month === 1 && day === 28) return '和平紀念日';
             if (month === 3 && day === 4) return '兒童節';
@@ -76,45 +75,25 @@
             if (month === 4 && day === 1) return '勞動節';
             if (month === 9 && day === 10) return '國慶日';
             
-            // 農曆變動假日對照表 (Key格式: YYYY-M-D, M為0-based)
             const lunarHolidays = {
-                // 2026 (馬年)
                 '2026-1-16': '小年夜', '2026-1-17': '除夕', '2026-1-18': '春節', '2026-1-19': '初二', '2026-1-20': '初三', '2026-1-21': '初四', '2026-1-22': '初五',
                 '2026-5-19': '端午節', '2026-8-25': '中秋節',
-
-                // 2027 (羊年)
                 '2027-1-5': '小年夜', '2027-1-6': '除夕', '2027-1-7': '春節', '2027-1-8': '初二', '2027-1-9': '初三', '2027-1-10': '初四', '2027-1-11': '初五',
                 '2027-5-9': '端午節', '2027-8-15': '中秋節',
-
-                // 2028 (猴年)
                 '2028-0-25': '小年夜', '2028-0-26': '除夕', '2028-0-27': '春節', '2028-0-28': '初二', '2028-0-29': '初三', '2028-0-30': '初四', '2028-0-31': '初五',
                 '2028-4-28': '端午節', '2028-9-3': '中秋節',
-
-                // 2029 (雞年)
                 '2029-1-12': '小年夜', '2029-1-13': '除夕', '2029-1-14': '春節', '2029-1-15': '初二', '2029-1-16': '初三', '2029-1-17': '初四', '2029-1-18': '初五',
                 '2029-5-16': '端午節', '2029-8-22': '中秋節',
-
-                // 2030 (狗年)
                 '2030-1-1': '小年夜', '2030-1-2': '除夕', '2030-1-3': '春節', '2030-1-4': '初二', '2030-1-5': '初三', '2030-1-6': '初四', '2030-1-7': '初五',
                 '2030-5-5': '端午節', '2030-8-12': '中秋節',
-
-                // 2031 (豬年)
                 '2031-0-22': '小年夜', '2031-0-23': '除夕', '2031-0-24': '春節', '2031-0-25': '初二', '2031-0-26': '初三', '2031-0-27': '初四', '2031-0-28': '初五',
                 '2031-5-24': '端午節', '2031-9-1': '中秋節',
-
-                // 2032 (鼠年)
                 '2032-1-10': '小年夜', '2032-1-11': '除夕', '2032-1-12': '春節', '2032-1-13': '初二', '2032-1-14': '初三', '2032-1-15': '初四', '2032-1-16': '初五',
                 '2032-5-12': '端午節', '2032-8-19': '中秋節',
-
-                // 2033 (牛年)
                 '2033-0-30': '小年夜', '2033-0-31': '除夕', '2033-1-1': '春節', '2033-1-2': '初二', '2033-1-3': '初三', '2033-1-4': '初四', '2033-1-5': '初五',
                 '2033-5-1': '端午節', '2033-8-8': '中秋節',
-
-                // 2034 (虎年)
                 '2034-1-18': '小年夜', '2034-1-19': '除夕', '2034-1-20': '春節', '2034-1-21': '初二', '2034-1-22': '初三', '2034-1-23': '初四', '2034-1-24': '初五',
                 '2034-5-20': '端午節', '2034-8-27': '中秋節',
-
-                // 2035 (兔年)
                 '2035-1-7': '小年夜', '2035-1-8': '除夕', '2035-1-9': '春節', '2035-1-10': '初二', '2035-1-11': '初三', '2035-1-12': '初四', '2035-1-13': '初五',
                 '2035-5-10': '端午節', '2035-8-16': '中秋節',
             };
@@ -129,46 +108,36 @@
             const [logs, setLogs] = useState([]);
             const [activeTab, setActiveTab] = useState('calendar'); 
             const [stats, setStats] = useState([]);
-            const [autoAdjustMode, setAutoAdjustMode] = useState(false); // 新增：連動調整模式
+            const [autoAdjustMode, setAutoAdjustMode] = useState(false);
 
             const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
             const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
 
-            // --- 重新計算統計資料 (為了支援拖曳後的即時更新) ---
+            // --- 重新計算統計資料 ---
             const calculateStats = (currentSchedule, currentStaffList) => {
                 let newStats = currentStaffList.map(s => ({
-                    ...s,
-                    offCount: 0,
-                    nightShiftCount: 0,
-                    haizongCount: 0,
-                    gaoyiCount: 0,
-                    recallCount: 0,
+                    ...s, offCount: 0, nightShiftCount: 0, haizongCount: 0, gaoyiCount: 0, recallCount: 0,
                 }));
 
                 Object.values(currentSchedule).forEach(dayData => {
                     if (!dayData) return;
-
                     (dayData.nightShift['海總'] || []).forEach(s => {
                         const stat = newStats.find(st => st.id === s.id);
                         if (stat) { stat.haizongCount++; stat.nightShiftCount++; }
                     });
-                    
                     (dayData.nightShift['高醫'] || []).forEach(s => {
                         const stat = newStats.find(st => st.id === s.id);
                         if (stat) { stat.gaoyiCount++; stat.nightShiftCount++; }
                     });
-
                     (dayData.off || []).forEach(s => {
                         const stat = newStats.find(st => st.id === s.id);
                         if (stat) { stat.offCount++; }
                     });
-
                     (dayData.recall || []).forEach(s => {
                         const stat = newStats.find(st => st.id === s.id);
                         if (stat) { stat.recallCount++; } 
                     });
                 });
-
                 return newStats;
             };
 
@@ -177,10 +146,8 @@
                 setStats(calculateStats(newSchedule, staffList));
             };
 
-            // --- 年月切換邏輯 ---
             const changeMonth = (offset) => {
-                const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1);
-                setCurrentDate(newDate);
+                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
                 setSchedule({}); setStats([]); setLogs([]);
             };
             const handleYearChange = (e) => {
@@ -192,7 +159,6 @@
                 setSchedule({}); setStats([]); setLogs([]);
             };
 
-            // --- 統計某日之前的所有數據 (用於連動調整時的基礎重建) ---
             const buildStatsUpToDay = (currentSchedule, upToDay, currentStaffList) => {
                 let currentStats = currentStaffList.map(s => ({ 
                     ...s, offCount: 0, nightShiftCount: 0, haizongCount: 0, gaoyiCount: 0, consecutiveWork: 0, lastWorkDay: -10 
@@ -239,7 +205,6 @@
                 return currentStats;
             };
 
-            // --- 從特定日期開始排班 (支援全自動 或 拖曳後的局部重算) ---
             const generateScheduleFrom = (baseSchedule, startDay, showAlert = true) => {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
@@ -247,7 +212,6 @@
                 let newSchedule = { ...baseSchedule };
                 let processLogs = [];
 
-                // 清除從 startDay 開始的舊排班，準備重算
                 for (let d = startDay; d <= daysInMonth; d++) {
                     delete newSchedule[d];
                 }
@@ -265,13 +229,38 @@
 
                 const STANDARD_LEAVE_LIMIT = 5; 
 
+                // === 新增：針對全月固定駐點選人的輔助函式 ===
+                const sortForBalance = (arr, locField) => {
+                    let temp = shuffle(arr);
+                    return temp.sort((a, b) => {
+                        if (a.nightShiftCount !== b.nightShiftCount) return a.nightShiftCount - b.nightShiftCount;
+                        return a[locField] - b[locField];
+                    });
+                };
+
+                const pickStaff = (pool, count, locField, targetLocation) => {
+                    // 1. 排除被強制固定在「另一個地點」的人
+                    let available = pool.filter(s => s.fixedLocation !== (targetLocation === '海總' ? '高醫' : '海總'));
+                    
+                    // 2. 不再強制優先選取固定人員！
+                    // 將所有符合資格的人（包含固定與自由人）全部混在一起，純粹依照「夜班總數」進行平衡排序
+                    // 這樣一來，固定駐點的人如果班數已經跟上平均，就會自然落後並被排去「待命」，總班數就不會暴增
+                    let candidates = sortForBalance(available, locField);
+
+                    let selected = candidates.slice(0, count);
+
+                    // 3. 將被選中的人從原本的 pool 陣列中移除，避免重複選擇
+                    selected.forEach(sel => {
+                        const idx = pool.findIndex(p => p.id === sel.id);
+                        if(idx > -1) pool.splice(idx, 1);
+                    });
+
+                    return selected;
+                };
+                // ========================================================
+
                 for (let day = startDay; day <= daysInMonth; day++) {
-                    let dailyAssignment = {
-                        nightShift: { '海總': [], '高醫': [] },
-                        off: [],
-                        standby: [],
-                        recall: [] // 新增召回陣列
-                    };
+                    let dailyAssignment = { nightShift: { '海總': [], '高醫': [] }, off: [], standby: [], recall: [] };
 
                     const currentUsedLeaves = staffStats.reduce((sum, s) => sum + s.offCount, 0);
                     const targetTotalLeaves = staffList.length * STANDARD_LEAVE_LIMIT;
@@ -283,7 +272,6 @@
                     }
                     if (targetOffCount < 2) targetOffCount = 2; 
 
-                    // --- 解析當日指定值班 ---
                     let designatedHz = [];
                     let designatedGy = [];
                     let designatedStandby = [];
@@ -296,14 +284,12 @@
                         }
                     });
                     
-                    // --- 決定今日休假 ---
                     let mandatoryOff = staffStats.filter(s => {
                         const isDesignatedToday = s.designatedShifts?.some(ds => ds.date === day);
-                        if (isDesignatedToday) return false; // 指定排班/待命優先，當日不可休
+                        if (isDesignatedToday) return false; 
                         
                         if (s.preferredOff.includes(day)) return true;
                         
-                        // 嚴格確保5天休假：若剩下可排休天數剛好等於缺的假，且今日沒被指定值班，強制排休
                         if (s.offCount < STANDARD_LEAVE_LIMIT) {
                             let availableFutureDays = 0;
                             for (let d = day; d <= daysInMonth; d++) {
@@ -316,8 +302,8 @@
 
                     let candidatesForOff = staffStats.filter(s => {
                         if (mandatoryOff.some(m => m.id === s.id)) return false;
-                        if (s.designatedShifts?.some(ds => ds.date === day)) return false; // 指定排班不可休
-                        if (s.lastWorkDay === day - 1) return false; // 昨天值班，今天盡量不隨機休
+                        if (s.designatedShifts?.some(ds => ds.date === day)) return false;
+                        if (s.lastWorkDay === day - 1) return false;
                         
                         const futurePreferred = s.preferredOff.filter(d => d > day).length;
                         const projectedTotal = s.offCount + futurePreferred;
@@ -339,9 +325,8 @@
                     let needed = Math.max(0, targetOffCount - currentOffList.length);
                     
                     for (let i = 0; i < needed; i++) {
-                        if (candidatesForOff.length > 0) {
-                            currentOffList.push(candidatesForOff.shift());
-                        } else break; 
+                        if (candidatesForOff.length > 0) currentOffList.push(candidatesForOff.shift());
+                        else break; 
                     }
 
                     dailyAssignment.off = currentOffList;
@@ -351,44 +336,32 @@
                         staffStats[idx].consecutiveWork = 0; 
                     });
 
-                    // --- 分配夜班 ---
+                    // --- 分配夜班 (套用新的 pickStaff 邏輯) ---
                     let eligibleForNight = staffStats.filter(s => {
                         if (currentOffList.some(off => off.id === s.id)) return false;
-                        if (designatedHz.some(d => d.id === s.id) || designatedGy.some(d => d.id === s.id)) return false; // 已在指定名單
-                        if (designatedStandby.some(d => d.id === s.id)) return false; // 指定待命，不可排夜班
+                        if (designatedHz.some(d => d.id === s.id) || designatedGy.some(d => d.id === s.id)) return false;
+                        if (designatedStandby.some(d => d.id === s.id)) return false;
                         if (s.preferredOff.includes(day + 1)) return false;
-                        if (s.consecutiveWork >= 2) return false; // 嚴格限制：最多連2天 (指定值班者不受此限)
+                        if (s.consecutiveWork >= 2) return false;
                         return true;
                     });
 
-                    const sortForBalance = (arr, locField) => {
-                        let temp = shuffle(arr);
-                        return temp.sort((a, b) => {
-                            if (a.nightShiftCount !== b.nightShiftCount) return a.nightShiftCount - b.nightShiftCount;
-                            return a[locField] - b[locField];
-                        });
-                    };
-
                     let morticians = eligibleForNight.filter(s => s.role === 'mortician');
                     
-                    morticians = sortForBalance(morticians, 'haizongCount');
                     const hzStrictMortsNeeded = Math.max(0, 2 - designatedHz.filter(s => s.role === 'mortician').length);
-                    const hzStrictMorts = morticians.splice(0, hzStrictMortsNeeded);
+                    const hzStrictMorts = pickStaff(morticians, hzStrictMortsNeeded, 'haizongCount', '海總');
                     
-                    morticians = sortForBalance(morticians, 'gaoyiCount');
                     const gyStrictMortsNeeded = Math.max(0, 1 - designatedGy.filter(s => s.role === 'mortician').length);
-                    const gyStrictMorts = morticians.splice(0, gyStrictMortsNeeded);
+                    const gyStrictMorts = pickStaff(morticians, gyStrictMortsNeeded, 'gaoyiCount', '高醫');
 
                     let assistants = eligibleForNight.filter(s => s.role === 'assistant');
-                    let supportPool = [...morticians, ...assistants];
+                    let supportPool = [...morticians, ...assistants]; // 合併剩餘的禮儀師與助理
 
-                    supportPool = sortForBalance(supportPool, 'haizongCount');
                     const hzSupportNeeded = Math.max(0, 4 - designatedHz.length - hzStrictMorts.length);
-                    const hzSupport = supportPool.splice(0, hzSupportNeeded);
+                    const hzSupport = pickStaff(supportPool, hzSupportNeeded, 'haizongCount', '海總');
 
-                    supportPool = sortForBalance(supportPool, 'gaoyiCount');
                     const gySupportNeeded = Math.max(0, 2 - designatedGy.length - gyStrictMorts.length);
-                    const gySupport = supportPool.splice(0, gySupportNeeded);
+                    const gySupport = pickStaff(supportPool, gySupportNeeded, 'gaoyiCount', '高醫');
 
                     const hzTeam = [...designatedHz, ...hzStrictMorts, ...hzSupport];
                     const gyTeam = [...designatedGy, ...gyStrictMorts, ...gySupport];
@@ -433,15 +406,12 @@
 
             const generateSchedule = () => generateScheduleFrom({}, 1, true);
 
-            // --- 拖曳功能事件 (Drag and Drop) ---
             const handleDragStart = (e, day, category, staffId) => {
                 e.dataTransfer.setData('application/json', JSON.stringify({ day, category, staffId }));
-                setTimeout(() => e.target.style.opacity = '0.5', 0); // 拖曳時半透明
+                setTimeout(() => e.target.style.opacity = '0.5', 0);
             };
 
-            const handleDragEnd = (e) => {
-                e.target.style.opacity = '1';
-            };
+            const handleDragEnd = (e) => { e.target.style.opacity = '1'; };
 
             const handleDrop = (e, targetDay, targetCategory) => {
                 e.preventDefault();
@@ -451,12 +421,10 @@
                 try {
                     const { day: sourceDay, category: sourceCategory, staffId } = JSON.parse(dataString);
                     
-                    // --- 新增防呆限制：嚴禁跨天拖曳人員 ---
                     if (sourceDay !== targetDay) {
                         alert("⚠️ 防呆限制：只能在「同一天」內的各區域互相調動，不允許將人員跨日拖曳！");
                         return;
                     }
-
                     if (sourceDay === targetDay && sourceCategory === targetCategory) return;
 
                     let newSchedule = { ...schedule };
@@ -469,9 +437,7 @@
                             case 'gaoyi': return dayObj.nightShift['高醫'];
                             case 'standby': return dayObj.standby;
                             case 'off': return dayObj.off;
-                            case 'recall': 
-                                if (!dayObj.recall) dayObj.recall = [];
-                                return dayObj.recall;
+                            case 'recall': return dayObj.recall || (dayObj.recall = []);
                             default: return null;
                         }
                     };
@@ -484,10 +450,8 @@
                     const staffIndex = sourceList.findIndex(s => s.id === staffId);
                     if (staffIndex === -1) return;
 
-                    // 取出被拖曳的員工
                     const [staffMember] = sourceList.splice(staffIndex, 1);
                     
-                    // 防呆：同一天內先把他從其他名單中剔除（避免分身）
                     const categories = ['haizong', 'gaoyi', 'standby', 'off', 'recall'];
                     categories.forEach(cat => {
                         const list = getListRef(newSchedule[targetDay], cat);
@@ -497,21 +461,17 @@
                         }
                     });
 
-                    // 放入目標區域
                     targetList.push(staffMember);
                     
-                    // 若開啟連動調整，則從變動發生的隔天開始自動重排
                     const regenDay = targetDay + 1;
                     if (autoAdjustMode && regenDay <= getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())) {
                         generateScheduleFrom(newSchedule, regenDay, false);
                     } else {
                         updateScheduleAndStats(newSchedule);
                     }
-
                 } catch (err) { console.error("Drop error", err); }
             };
 
-            // --- 隨機召回放假人員 ---
             const handleRandomRecall = (day) => {
                 let newSchedule = { ...schedule };
                 newSchedule[day] = JSON.parse(JSON.stringify(newSchedule[day]));
@@ -524,13 +484,11 @@
                 
                 if (!newSchedule[day].recall) newSchedule[day].recall = [];
 
-                // 隨機抽取一位
                 const randomIndex = Math.floor(Math.random() * offList.length);
                 const [recalledStaff] = offList.splice(randomIndex, 1);
                 
                 newSchedule[day].recall.push(recalledStaff);
                 
-                // 召回導致休假改變，若開啟連動調整，從明天開始重排補假
                 if (autoAdjustMode && day < getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())) {
                     generateScheduleFrom(newSchedule, day + 1, false);
                 } else {
@@ -539,8 +497,9 @@
             };
 
             // --- 人員管理 ---
-            const handleAddStaff = (name, role) => setStaffList([...staffList, { id: Date.now(), name, role, preferredOff: [], designatedShifts: [] }]);
+            const handleAddStaff = (name, role) => setStaffList([...staffList, { id: Date.now(), name, role, preferredOff: [], designatedShifts: [], fixedLocation: '' }]);
             const handleRemoveStaff = (id) => setStaffList(staffList.filter(s => s.id !== id));
+            
             const togglePreferredOff = (staffId, day) => {
                 setStaffList(staffList.map(s => {
                     if (s.id !== staffId) return s;
@@ -567,7 +526,10 @@
                 }));
             };
 
-            // --- 渲染行事曆 ---
+            const updateFixedLocation = (staffId, location) => {
+                setStaffList(staffList.map(s => s.id === staffId ? { ...s, fixedLocation: location } : s));
+            };
+
             const renderCalendar = () => {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
@@ -605,7 +567,7 @@
                                     
                                     {daySchedule ? (
                                         <div className="flex-1 flex flex-col gap-1">
-                                            {/* 夜班區域 (支援拖曳) */}
+                                            {/* 夜班區域 */}
                                             <div className="bg-slate-800 text-white p-1 rounded shadow-sm">
                                                 <div className="flex items-center gap-1 font-bold mb-1 text-yellow-300 border-b border-slate-600 pb-1">
                                                     <MoonIcon size={10} /> 夜班
@@ -648,7 +610,7 @@
                                                 </div>
                                             </div>
 
-                                            {/* 待命區域 (支援拖曳) */}
+                                            {/* 待命區域 */}
                                             <div className="bg-blue-50 p-1 rounded border border-blue-100 flex-1">
                                                 <div className="text-[10px] text-blue-800 font-bold mb-1 flex items-center gap-1">
                                                     <BriefcaseIcon size={10}/> 待命 ({daySchedule.standby.length})
@@ -670,7 +632,7 @@
                                                 </div>
                                             </div>
 
-                                            {/* 召回區域 (新增，支援拖曳) */}
+                                            {/* 召回區域 */}
                                             {(daySchedule.recall && daySchedule.recall.length > 0) && (
                                                 <div className="bg-orange-50 p-1 rounded border border-orange-200">
                                                     <div className="text-[10px] text-orange-600 font-bold mb-1 flex items-center gap-1">
@@ -692,7 +654,7 @@
                                                 </div>
                                             )}
 
-                                            {/* 休假區域 (新增抽籤按鈕，支援拖曳) */}
+                                            {/* 休假區域 */}
                                             <div className="mt-auto pt-1 bg-red-50/40 p-1 rounded border border-red-50">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <div className="text-[10px] text-red-500 flex items-center gap-1 font-bold">
@@ -760,7 +722,10 @@
                                 <tbody>
                                     {stats.sort((a,b) => b.nightShiftCount - a.nightShiftCount).map(s => (
                                         <tr key={s.id} className="border-b hover:bg-gray-50">
-                                            <td className="p-2 font-medium">{s.name}</td>
+                                            <td className="p-2 font-medium">
+                                                {s.name}
+                                                {s.fixedLocation && <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1 rounded">固: {s.fixedLocation}</span>}
+                                            </td>
                                             <td className="p-2 text-xs text-gray-500">{s.role === 'mortician' ? '禮儀師' : '助理'}</td>
                                             <td className={`p-2 text-center font-bold ${s.offCount < 5 ? 'text-red-500 bg-red-100' : (s.offCount > 5 ? 'text-blue-600' : 'text-green-600')}`}>{s.offCount}</td>
                                             <td className={`p-2 text-center font-bold text-lg ${Math.abs(s.nightShiftCount - avgShifts) > 2 ? 'text-red-500' : 'text-slate-800'}`}>{s.nightShiftCount}</td>
@@ -815,7 +780,7 @@
                                 <div className="flex flex-wrap justify-between items-center bg-white p-4 rounded-lg shadow-sm gap-4">
                                     <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                                         <div className="font-bold text-gray-800">操作說明：</div>
-                                        <div className="flex items-center gap-1 text-red-500">🎲 點擊隨機抽籤召回</div>
+                                        <div className="flex items-center gap-1 text-red-500">🎲 點擊休假區可隨機抽籤召回</div>
                                     </div>
                                     <div className="flex gap-2">
                                         <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 bg-indigo-50 px-3 py-2 rounded-md hover:bg-indigo-100 border border-indigo-100 transition-colors">
@@ -852,6 +817,7 @@
                                     <h3 className="font-bold mb-2">設定說明：</h3>
                                     <ul className="list-disc pl-5 space-y-1">
                                         <li>點擊日期可設定「自選假」（每人最多 6 天）。</li>
+                                        <li>「固定駐點」選項會將該人員整個月強制分配至該單位（只要輪到夜班必去該處）。</li>
                                     </ul>
                                 </div>
                                 <div className="overflow-x-auto">
@@ -860,8 +826,9 @@
                                             <tr className="border-b-2 border-gray-200 bg-gray-50">
                                                 <th className="p-3">姓名</th>
                                                 <th className="p-3">職位</th>
+                                                <th className="p-3">固定駐點 (全月)</th>
                                                 <th className="p-3">指定自選假</th>
-                                                <th className="p-3">指定排班 (夜班跳脫連2休)</th>
+                                                <th className="p-3">單日指定排班 (跳脫連2休)</th>
                                                 <th className="p-3 text-right">刪除</th>
                                             </tr>
                                         </thead>
@@ -870,6 +837,17 @@
                                                 <tr key={staff.id} className="border-b border-gray-100 hover:bg-gray-50">
                                                     <td className="p-3 font-medium">{staff.name}</td>
                                                     <td className="p-3"><span className={`px-2 py-1 rounded text-xs ${staff.role==='mortician'?'bg-purple-100 text-purple-800':'bg-cyan-100 text-cyan-800'}`}>{staff.role==='mortician'?'禮儀師':'助理'}</span></td>
+                                                    <td className="p-3">
+                                                        <select 
+                                                            className="text-xs border border-gray-300 rounded p-1 focus:outline-none bg-white cursor-pointer"
+                                                            value={staff.fixedLocation || ''}
+                                                            onChange={(e) => updateFixedLocation(staff.id, e.target.value)}
+                                                        >
+                                                            <option value="">無</option>
+                                                            <option value="海總">海總</option>
+                                                            <option value="高醫">高醫</option>
+                                                        </select>
+                                                    </td>
                                                     <td className="p-3">
                                                         <div className="flex flex-wrap gap-1">
                                                             {staff.preferredOff.map(d => <span key={d} onClick={()=>togglePreferredOff(staff.id, d)} className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs cursor-pointer hover:bg-red-200 flex items-center gap-1">{d}號 x</span>)}
