@@ -5,51 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>崧鶴排班系統</title>
     
-    <!-- 1. 引入 Tailwind CSS (CDN) -->
+    <!-- 引入 Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. 引入 React 和 ReactDOM (CDN) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- 配置 Tailwind 主題顏色 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5', // Indigo 600
+                        secondary: '#0ea5e9', // Sky 500
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'system-ui', '-apple-system', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     
-    <!-- 3. 引入 Babel 用於解析 JSX (CDN) -->
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- 引入 React 和 ReactDOM (CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel 用於解析 JSX (CDN) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        /* 增加拖曳時的視覺回饋 */
+        body { background-color: #f8fafc; font-family: 'Noto Sans TC', sans-serif; }
+        /* 增加拖曳時的視覺回饋與自定義滾動條 */
         .cursor-move { cursor: move; cursor: grab; }
         .cursor-move:active { cursor: grabbing; }
+        
+        /* 美化滾動條 */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* 隱藏預設的下拉選單箭頭以美化 */
+        select.custom-select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1em; padding-right: 2rem; }
     </style>
 </head>
-<body>
+<body class="text-slate-800">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useCallback } = React;
 
-        // --- 4. 內建圖示組件 ---
-        const IconWrapper = ({ children, color = "currentColor", size = 24, className = "" }) => (
+        // --- 1. 內建圖示組件 (Lucide 風格) ---
+        const IconWrapper = ({ children, color = "currentColor", size = 20, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
 
-        const CalendarIcon = (props) => <IconWrapper {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></IconWrapper>;
-        const UserIcon = (props) => <IconWrapper {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></IconWrapper>;
-        const UsersIcon = (props) => <IconWrapper {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconWrapper>;
-        const ShieldAlertIcon = (props) => <IconWrapper {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>;
-        const CheckCircleIcon = (props) => <IconWrapper {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconWrapper>;
-        const Trash2Icon = (props) => <IconWrapper {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconWrapper>;
-        const PlusIcon = (props) => <IconWrapper {...props}><path d="M5 12h14"/><path d="M12 5v14"/></IconWrapper>;
-        const RefreshCwIcon = (props) => <IconWrapper {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconWrapper>;
-        const SettingsIcon = (props) => <IconWrapper {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconWrapper>;
-        const MoonIcon = (props) => <IconWrapper {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></IconWrapper>;
-        const BarChart3Icon = (props) => <IconWrapper {...props}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></IconWrapper>;
-        const CoffeeIcon = (props) => <IconWrapper {...props}><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></IconWrapper>;
-        const BriefcaseIcon = (props) => <IconWrapper {...props}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></IconWrapper>;
-        const ChevronLeftIcon = (props) => <IconWrapper {...props}><path d="m15 18-6-6 6-6"/></IconWrapper>;
-        const ChevronRightIcon = (props) => <IconWrapper {...props}><path d="m9 18 6-6-6-6"/></IconWrapper>;
+        const Icons = {
+            Calendar: (props) => <IconWrapper {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></IconWrapper>,
+            Users: (props) => <IconWrapper {...props}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></IconWrapper>,
+            Alert: (props) => <IconWrapper {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>,
+            Check: (props) => <IconWrapper {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></IconWrapper>,
+            Trash: (props) => <IconWrapper {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconWrapper>,
+            Plus: (props) => <IconWrapper {...props}><path d="M5 12h14"/><path d="M12 5v14"/></IconWrapper>,
+            Refresh: (props) => <IconWrapper {...props}><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></IconWrapper>,
+            Settings: (props) => <IconWrapper {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.39a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconWrapper>,
+            Moon: (props) => <IconWrapper {...props}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></IconWrapper>,
+            BarChart: (props) => <IconWrapper {...props}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></IconWrapper>,
+            Coffee: (props) => <IconWrapper {...props}><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></IconWrapper>,
+            Briefcase: (props) => <IconWrapper {...props}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></IconWrapper>,
+            ChevronLeft: (props) => <IconWrapper {...props}><path d="m15 18-6-6 6-6"/></IconWrapper>,
+            ChevronRight: (props) => <IconWrapper {...props}><path d="m9 18 6-6-6-6"/></IconWrapper>,
+            Save: (props) => <IconWrapper {...props}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></IconWrapper>,
+            Dice: (props) => <IconWrapper {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="1.5"/><circle cx="15" cy="15" r="1.5"/></IconWrapper>,
+            Building: (props) => <IconWrapper {...props}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></IconWrapper>
+        };
 
-        // --- 5. 初始模擬資料 (加入 fixedLocation) ---
+        // --- 2. 初始模擬資料 ---
         const INITIAL_STAFF = [
             { id: 1, name: '王世通', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 2, name: '劉宗坤', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
@@ -84,42 +117,138 @@
                 '2028-4-28': '端午節', '2028-9-3': '中秋節',
                 '2029-1-12': '小年夜', '2029-1-13': '除夕', '2029-1-14': '春節', '2029-1-15': '初二', '2029-1-16': '初三', '2029-1-17': '初四', '2029-1-18': '初五',
                 '2029-5-16': '端午節', '2029-8-22': '中秋節',
-                '2030-1-1': '小年夜', '2030-1-2': '除夕', '2030-1-3': '春節', '2030-1-4': '初二', '2030-1-5': '初三', '2030-1-6': '初四', '2030-1-7': '初五',
-                '2030-5-5': '端午節', '2030-8-12': '中秋節',
-                '2031-0-22': '小年夜', '2031-0-23': '除夕', '2031-0-24': '春節', '2031-0-25': '初二', '2031-0-26': '初三', '2031-0-27': '初四', '2031-0-28': '初五',
-                '2031-5-24': '端午節', '2031-9-1': '中秋節',
-                '2032-1-10': '小年夜', '2032-1-11': '除夕', '2032-1-12': '春節', '2032-1-13': '初二', '2032-1-14': '初三', '2032-1-15': '初四', '2032-1-16': '初五',
-                '2032-5-12': '端午節', '2032-8-19': '中秋節',
-                '2033-0-30': '小年夜', '2033-0-31': '除夕', '2033-1-1': '春節', '2033-1-2': '初二', '2033-1-3': '初三', '2033-1-4': '初四', '2033-1-5': '初五',
-                '2033-5-1': '端午節', '2033-8-8': '中秋節',
-                '2034-1-18': '小年夜', '2034-1-19': '除夕', '2034-1-20': '春節', '2034-1-21': '初二', '2034-1-22': '初三', '2034-1-23': '初四', '2034-1-24': '初五',
-                '2034-5-20': '端午節', '2034-8-27': '中秋節',
-                '2035-1-7': '小年夜', '2035-1-8': '除夕', '2035-1-9': '春節', '2035-1-10': '初二', '2035-1-11': '初三', '2035-1-12': '初四', '2035-1-13': '初五',
-                '2035-5-10': '端午節', '2035-8-16': '中秋節',
             };
             return lunarHolidays[`${year}-${month}-${day}`];
         };
 
+        // --- 3. 獨立元件：人員設定行 (解決原本 document.getElementById 的 Anti-pattern) ---
+        const StaffRow = ({ staff, onRemove, onToggleOff, onAddShift, onRemoveShift, onUpdateLocation }) => {
+            const [selectedDate, setSelectedDate] = useState("");
+            const [selectedLoc, setSelectedLoc] = useState("海總");
+
+            const handleAddShift = () => {
+                if (selectedDate && selectedLoc) {
+                    onAddShift(staff.id, parseInt(selectedDate), selectedLoc);
+                    setSelectedDate(""); // 建立後清空
+                }
+            };
+
+            return (
+                <tr className="border-b border-slate-100 hover:bg-slate-50 transition-colors group">
+                    <td className="p-3 font-medium text-slate-800">{staff.name}</td>
+                    <td className="p-3">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-medium border ${staff.role === 'mortician' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-sky-50 text-sky-700 border-sky-200'}`}>
+                            {staff.role === 'mortician' ? '禮儀師' : '助理'}
+                        </span>
+                    </td>
+                    <td className="p-3">
+                        <select 
+                            className="custom-select text-sm border border-slate-300 rounded-md py-1.5 pl-3 pr-8 focus:ring-2 focus:ring-primary focus:border-primary bg-white cursor-pointer shadow-sm"
+                            value={staff.fixedLocation || ''}
+                            onChange={(e) => onUpdateLocation(staff.id, e.target.value)}
+                        >
+                            <option value="">無固定</option>
+                            <option value="海總">📍 海總</option>
+                            <option value="高醫">📍 高醫</option>
+                        </select>
+                    </td>
+                    <td className="p-3">
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                            {staff.preferredOff.map(d => (
+                                <span key={d} onClick={() => onToggleOff(staff.id, d)} className="bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded-md text-xs cursor-pointer hover:bg-red-100 hover:border-red-300 flex items-center gap-1 transition-colors">
+                                    {d}號 <Icons.Plus size={12} className="rotate-45" />
+                                </span>
+                            ))}
+                            {staff.preferredOff.length < 10 && (
+                                <select 
+                                    className="custom-select text-xs border border-slate-300 rounded-md py-1 pl-2 pr-6 bg-white cursor-pointer hover:border-slate-400" 
+                                    onChange={(e) => { if(e.target.value) onToggleOff(staff.id, parseInt(e.target.value)); e.target.value=""; }}
+                                    value=""
+                                >
+                                    <option value="" disabled>+ 假</option>
+                                    {Array.from({length: 31}, (_,i)=>i+1).map(d => !staff.preferredOff.includes(d) && <option key={d} value={d}>{d}號</option>)}
+                                </select>
+                            )}
+                        </div>
+                    </td>
+                    <td className="p-3">
+                        <div className="flex flex-wrap gap-1.5 items-center">
+                            {staff.designatedShifts?.map(ds => (
+                                <span key={ds.date} onClick={() => onRemoveShift(staff.id, ds.date)} className={`px-2 py-1 border rounded-md text-xs cursor-pointer flex items-center gap-1 transition-colors ${ds.location === '待命' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' : 'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'}`}>
+                                    {ds.date}號 {ds.location} <Icons.Plus size={12} className="rotate-45" />
+                                </span>
+                            ))}
+                            <div className="flex items-center border border-slate-300 rounded-md bg-white overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-primary focus-within:border-primary">
+                                <select value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="text-xs py-1.5 px-2 focus:outline-none bg-transparent cursor-pointer">
+                                    <option value="" disabled>日期</option>
+                                    {Array.from({length: 31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
+                                </select>
+                                <select value={selectedLoc} onChange={e => setSelectedLoc(e.target.value)} className="text-xs py-1.5 px-2 focus:outline-none bg-transparent border-l border-slate-300 cursor-pointer">
+                                    <option value="海總">海總</option>
+                                    <option value="高醫">高醫</option>
+                                    <option value="待命">待命</option>
+                                </select>
+                                <button onClick={handleAddShift} disabled={!selectedDate} className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 p-1.5 px-3 border-l border-slate-300 transition-colors disabled:opacity-50 font-bold">
+                                    加入
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                    <td className="p-3 text-right">
+                        <button onClick={() => onRemove(staff.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all opacity-0 group-hover:opacity-100">
+                            <Icons.Trash size={18}/>
+                        </button>
+                    </td>
+                </tr>
+            );
+        };
+
+        // --- 主應用 ---
         const App = () => {
-            // --- 狀態管理 ---
-            const [staffList, setStaffList] = useState(INITIAL_STAFF);
-            const [currentDate, setCurrentDate] = useState(new Date());
-            const [schedule, setSchedule] = useState({});
+            // --- 狀態管理 (加入 LocalStorage 持久化) ---
+            const [staffList, setStaffList] = useState(() => {
+                const saved = localStorage.getItem('songhe_staff');
+                return saved ? JSON.parse(saved) : INITIAL_STAFF;
+            });
+            
+            const [currentDate, setCurrentDate] = useState(() => {
+                const saved = localStorage.getItem('songhe_date');
+                return saved ? new Date(saved) : new Date();
+            });
+            
+            const [schedule, setSchedule] = useState(() => {
+                const saved = localStorage.getItem('songhe_schedule');
+                return saved ? JSON.parse(saved) : {};
+            });
+
             const [logs, setLogs] = useState([]);
             const [activeTab, setActiveTab] = useState('calendar'); 
             const [stats, setStats] = useState([]);
             const [autoAdjustMode, setAutoAdjustMode] = useState(false);
+            const [toast, setToast] = useState(null);
 
+            // 當狀態改變時，寫入 LocalStorage
+            useEffect(() => { localStorage.setItem('songhe_staff', JSON.stringify(staffList)); }, [staffList]);
+            useEffect(() => { localStorage.setItem('songhe_date', currentDate.toISOString()); }, [currentDate]);
+            useEffect(() => { localStorage.setItem('songhe_schedule', JSON.stringify(schedule)); }, [schedule]);
+
+            // Toast 提示功能
+            const showToast = useCallback((message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => setToast(null), 3000);
+            }, []);
+
+            // 輔助函式
             const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
             const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
 
-            // --- 重新計算統計資料 ---
-            const calculateStats = (currentSchedule, currentStaffList) => {
-                let newStats = currentStaffList.map(s => ({
+            // 重新計算統計資料 (組件載入或 schedule 變更時自動執行)
+            useEffect(() => {
+                const newStats = staffList.map(s => ({
                     ...s, offCount: 0, nightShiftCount: 0, haizongCount: 0, gaoyiCount: 0, recallCount: 0,
                 }));
 
-                Object.values(currentSchedule).forEach(dayData => {
+                Object.values(schedule).forEach(dayData => {
                     if (!dayData) return;
                     (dayData.nightShift['海總'] || []).forEach(s => {
                         const stat = newStats.find(st => st.id === s.id);
@@ -138,27 +267,29 @@
                         if (stat) { stat.recallCount++; } 
                     });
                 });
-                return newStats;
-            };
+                setStats(newStats);
+            }, [schedule, staffList]);
 
-            const updateScheduleAndStats = (newSchedule) => {
+            const updateSchedule = (newSchedule) => {
                 setSchedule(newSchedule);
-                setStats(calculateStats(newSchedule, staffList));
             };
 
             const changeMonth = (offset) => {
                 setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + offset, 1));
-                setSchedule({}); setStats([]); setLogs([]);
+                setSchedule({}); setLogs([]);
             };
+            
             const handleYearChange = (e) => {
                 setCurrentDate(new Date(parseInt(e.target.value), currentDate.getMonth(), 1));
-                setSchedule({}); setStats([]); setLogs([]);
+                setSchedule({}); setLogs([]);
             };
+            
             const handleMonthChange = (e) => {
                 setCurrentDate(new Date(currentDate.getFullYear(), parseInt(e.target.value), 1));
-                setSchedule({}); setStats([]); setLogs([]);
+                setSchedule({}); setLogs([]);
             };
 
+            // 核心排班邏輯相關函式 (保持原本邏輯)
             const buildStatsUpToDay = (currentSchedule, upToDay, currentStaffList) => {
                 let currentStats = currentStaffList.map(s => ({ 
                     ...s, offCount: 0, nightShiftCount: 0, haizongCount: 0, gaoyiCount: 0, consecutiveWork: 0, lastWorkDay: -10 
@@ -178,10 +309,7 @@
 
                     off.forEach(s => {
                         const idx = currentStats.findIndex(st => st.id === s.id);
-                        if (idx > -1) {
-                            currentStats[idx].offCount++;
-                            currentStats[idx].consecutiveWork = 0;
-                        }
+                        if (idx > -1) { currentStats[idx].offCount++; currentStats[idx].consecutiveWork = 0; }
                     });
 
                     [...hz, ...gy].forEach(s => {
@@ -205,16 +333,14 @@
                 return currentStats;
             };
 
-            const generateScheduleFrom = (baseSchedule, startDay, showAlert = true) => {
+            const generateScheduleFrom = (baseSchedule, startDay, isFullGen = true) => {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
                 const daysInMonth = getDaysInMonth(year, month);
                 let newSchedule = { ...baseSchedule };
                 let processLogs = [];
 
-                for (let d = startDay; d <= daysInMonth; d++) {
-                    delete newSchedule[d];
-                }
+                for (let d = startDay; d <= daysInMonth; d++) { delete newSchedule[d]; }
 
                 let staffStats = buildStatsUpToDay(newSchedule, startDay - 1, staffList);
 
@@ -227,9 +353,9 @@
                     return arr;
                 };
 
-                const STANDARD_LEAVE_LIMIT = 5; 
+                // 將自動排班的基準休假目標設為 6 天
+                const STANDARD_LEAVE_LIMIT = 6; 
 
-                // === 新增：針對全月固定駐點選人的輔助函式 ===
                 const sortForBalance = (arr, locField) => {
                     let temp = shuffle(arr);
                     return temp.sort((a, b) => {
@@ -238,43 +364,42 @@
                     });
                 };
 
-                const pickStaff = (pool, count, locField, targetLocation) => {
-                    // 1. 排除被強制固定在「另一個地點」的人
+                const pickStaff = (pool, count, locField, targetLocation, existingTeam = []) => {
                     let available = pool.filter(s => s.fixedLocation !== (targetLocation === '海總' ? '高醫' : '海總'));
-                    
-                    // 2. 不再強制優先選取固定人員！
-                    // 將所有符合資格的人（包含固定與自由人）全部混在一起，純粹依照「夜班總數」進行平衡排序
-                    // 這樣一來，固定駐點的人如果班數已經跟上平均，就會自然落後並被排去「待命」，總班數就不會暴增
                     let candidates = sortForBalance(available, locField);
+                    let selected = [];
+                    
+                    for (let candidate of candidates) {
+                        if (selected.length >= count) break;
+                        
+                        // 特殊規則：黃勇在(ID:6)與邱億銘(ID:14)不能同地點排班
+                        const currentLocIds = [...existingTeam.map(s => s.id), ...selected.map(s => s.id)];
+                        if ((candidate.id === 6 && currentLocIds.includes(14)) || 
+                            (candidate.id === 14 && currentLocIds.includes(6))) {
+                            continue; // 發現衝突，跳過此候選人
+                        }
+                        
+                        selected.push(candidate);
+                    }
 
-                    let selected = candidates.slice(0, count);
-
-                    // 3. 將被選中的人從原本的 pool 陣列中移除，避免重複選擇
                     selected.forEach(sel => {
                         const idx = pool.findIndex(p => p.id === sel.id);
                         if(idx > -1) pool.splice(idx, 1);
                     });
-
                     return selected;
                 };
-                // ========================================================
 
                 for (let day = startDay; day <= daysInMonth; day++) {
                     let dailyAssignment = { nightShift: { '海總': [], '高醫': [] }, off: [], standby: [], recall: [] };
-
                     const currentUsedLeaves = staffStats.reduce((sum, s) => sum + s.offCount, 0);
                     const targetTotalLeaves = staffList.length * STANDARD_LEAVE_LIMIT;
                     const remainingDays = daysInMonth - day + 1;
                     
                     let targetOffCount = 0;
-                    if (remainingDays > 0) {
-                        targetOffCount = Math.ceil((targetTotalLeaves - currentUsedLeaves) / remainingDays);
-                    }
+                    if (remainingDays > 0) targetOffCount = Math.ceil((targetTotalLeaves - currentUsedLeaves) / remainingDays);
                     if (targetOffCount < 2) targetOffCount = 2; 
 
-                    let designatedHz = [];
-                    let designatedGy = [];
-                    let designatedStandby = [];
+                    let designatedHz = [], designatedGy = [], designatedStandby = [];
                     staffStats.forEach(s => {
                         const dShift = s.designatedShifts?.find(ds => ds.date === day);
                         if (dShift) {
@@ -285,11 +410,8 @@
                     });
                     
                     let mandatoryOff = staffStats.filter(s => {
-                        const isDesignatedToday = s.designatedShifts?.some(ds => ds.date === day);
-                        if (isDesignatedToday) return false; 
-                        
+                        if (s.designatedShifts?.some(ds => ds.date === day)) return false; 
                         if (s.preferredOff.includes(day)) return true;
-                        
                         if (s.offCount < STANDARD_LEAVE_LIMIT) {
                             let availableFutureDays = 0;
                             for (let d = day; d <= daysInMonth; d++) {
@@ -304,7 +426,6 @@
                         if (mandatoryOff.some(m => m.id === s.id)) return false;
                         if (s.designatedShifts?.some(ds => ds.date === day)) return false;
                         if (s.lastWorkDay === day - 1) return false;
-                        
                         const futurePreferred = s.preferredOff.filter(d => d > day).length;
                         const projectedTotal = s.offCount + futurePreferred;
                         const myLimit = Math.max(STANDARD_LEAVE_LIMIT, s.preferredOff.length);
@@ -313,10 +434,8 @@
                     });
 
                     candidatesForOff.sort((a, b) => {
-                        const futureA = a.preferredOff.filter(d => d > day).length;
-                        const projectedA = a.offCount + futureA;
-                        const futureB = b.preferredOff.filter(d => d > day).length;
-                        const projectedB = b.offCount + futureB;
+                        const futureA = a.preferredOff.filter(d => d > day).length, projectedA = a.offCount + futureA;
+                        const futureB = b.preferredOff.filter(d => d > day).length, projectedB = b.offCount + futureB;
                         if (projectedA !== projectedB) return projectedA - projectedB;
                         return Math.random() - 0.5;
                     });
@@ -332,36 +451,37 @@
                     dailyAssignment.off = currentOffList;
                     currentOffList.forEach(s => {
                         const idx = staffStats.findIndex(st => st.id === s.id);
-                        staffStats[idx].offCount++;
-                        staffStats[idx].consecutiveWork = 0; 
+                        staffStats[idx].offCount++; staffStats[idx].consecutiveWork = 0; 
                     });
 
-                    // --- 分配夜班 (套用新的 pickStaff 邏輯) ---
                     let eligibleForNight = staffStats.filter(s => {
                         if (currentOffList.some(off => off.id === s.id)) return false;
-                        if (designatedHz.some(d => d.id === s.id) || designatedGy.some(d => d.id === s.id)) return false;
-                        if (designatedStandby.some(d => d.id === s.id)) return false;
+                        if (designatedHz.some(d => d.id === s.id) || designatedGy.some(d => d.id === s.id) || designatedStandby.some(d => d.id === s.id)) return false;
                         if (s.preferredOff.includes(day + 1)) return false;
                         if (s.consecutiveWork >= 2) return false;
+                        
+                        // 特殊規則：劉春榮 (ID: 3) 星期一、三、五 不能排夜班
+                        if (s.id === 3) {
+                            const weekDay = new Date(year, month, day).getDay();
+                            if ([1, 3, 5].includes(weekDay)) return false;
+                        }
+                        
                         return true;
                     });
 
                     let morticians = eligibleForNight.filter(s => s.role === 'mortician');
-                    
                     const hzStrictMortsNeeded = Math.max(0, 2 - designatedHz.filter(s => s.role === 'mortician').length);
-                    const hzStrictMorts = pickStaff(morticians, hzStrictMortsNeeded, 'haizongCount', '海總');
-                    
+                    const hzStrictMorts = pickStaff(morticians, hzStrictMortsNeeded, 'haizongCount', '海總', designatedHz);
                     const gyStrictMortsNeeded = Math.max(0, 1 - designatedGy.filter(s => s.role === 'mortician').length);
-                    const gyStrictMorts = pickStaff(morticians, gyStrictMortsNeeded, 'gaoyiCount', '高醫');
+                    const gyStrictMorts = pickStaff(morticians, gyStrictMortsNeeded, 'gaoyiCount', '高醫', designatedGy);
 
                     let assistants = eligibleForNight.filter(s => s.role === 'assistant');
-                    let supportPool = [...morticians, ...assistants]; // 合併剩餘的禮儀師與助理
+                    let supportPool = [...morticians, ...assistants];
 
                     const hzSupportNeeded = Math.max(0, 4 - designatedHz.length - hzStrictMorts.length);
-                    const hzSupport = pickStaff(supportPool, hzSupportNeeded, 'haizongCount', '海總');
-
+                    const hzSupport = pickStaff(supportPool, hzSupportNeeded, 'haizongCount', '海總', [...designatedHz, ...hzStrictMorts]);
                     const gySupportNeeded = Math.max(0, 2 - designatedGy.length - gyStrictMorts.length);
-                    const gySupport = pickStaff(supportPool, gySupportNeeded, 'gaoyiCount', '高醫');
+                    const gySupport = pickStaff(supportPool, gySupportNeeded, 'gaoyiCount', '高醫', [...designatedGy, ...gyStrictMorts]);
 
                     const hzTeam = [...designatedHz, ...hzStrictMorts, ...hzSupport];
                     const gyTeam = [...designatedGy, ...gyStrictMorts, ...gySupport];
@@ -373,10 +493,7 @@
                     
                     [...hzTeam, ...gyTeam].forEach(s => {
                         const idx = staffStats.findIndex(st => st.id === s.id);
-                        staffStats[idx].nightShiftCount++;
-                        staffStats[idx].consecutiveWork++; 
-                        staffStats[idx].lastWorkDay = day;
-                        
+                        staffStats[idx].nightShiftCount++; staffStats[idx].consecutiveWork++; staffStats[idx].lastWorkDay = day;
                         if (dailyAssignment.nightShift['海總'].some(h => h.id === s.id)) staffStats[idx].haizongCount++;
                         else staffStats[idx].gaoyiCount++;
                     });
@@ -389,29 +506,30 @@
                         }
                     });
 
-                    if (hzTeam.length < 4) processLogs.push(`Day ${day}: 海總人力不足 (現${hzTeam.length}/需4)`);
-                    if (gyTeam.length < 2) processLogs.push(`Day ${day}: 高醫人力不足 (現${gyTeam.length}/需2)`);
+                    if (hzTeam.length < 4) processLogs.push(`${day}日: 海總人力不足 (現${hzTeam.length}/需4)`);
+                    if (gyTeam.length < 2) processLogs.push(`${day}日: 高醫人力不足 (現${gyTeam.length}/需2)`);
                     
                     newSchedule[day] = dailyAssignment;
                 }
 
                 setLogs(prev => startDay === 1 ? processLogs : [...prev, ...processLogs]);
-                updateScheduleAndStats(newSchedule);
+                updateSchedule(newSchedule);
                 
-                if (showAlert) {
-                    if(processLogs.length === 0) alert("排班完成！\n已保證每人至少5天假，且正常排班連續不超過2天。");
-                    else alert("排班完成，但有部分異常（請查看系統訊息並手動微調）。");
+                if (isFullGen) {
+                    if(processLogs.length === 0) showToast("排班自動生成完成！", "success");
+                    else showToast("排班完成，但有部分異常，請查看系統訊息。", "warning");
                 }
             };
 
-            const generateSchedule = () => generateScheduleFrom({}, 1, true);
+            const generateScheduleFull = () => generateScheduleFrom({}, 1, true);
 
+            // 拖曳處理
             const handleDragStart = (e, day, category, staffId) => {
                 e.dataTransfer.setData('application/json', JSON.stringify({ day, category, staffId }));
-                setTimeout(() => e.target.style.opacity = '0.5', 0);
+                setTimeout(() => e.target.classList.add('opacity-50'), 0);
             };
 
-            const handleDragEnd = (e) => { e.target.style.opacity = '1'; };
+            const handleDragEnd = (e) => { e.target.classList.remove('opacity-50'); };
 
             const handleDrop = (e, targetDay, targetCategory) => {
                 e.preventDefault();
@@ -422,7 +540,7 @@
                     const { day: sourceDay, category: sourceCategory, staffId } = JSON.parse(dataString);
                     
                     if (sourceDay !== targetDay) {
-                        alert("⚠️ 防呆限制：只能在「同一天」內的各區域互相調動，不允許將人員跨日拖曳！");
+                        showToast("防呆限制：不允許將人員跨日拖曳！", "error");
                         return;
                     }
                     if (sourceDay === targetDay && sourceCategory === targetCategory) return;
@@ -467,7 +585,7 @@
                     if (autoAdjustMode && regenDay <= getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())) {
                         generateScheduleFrom(newSchedule, regenDay, false);
                     } else {
-                        updateScheduleAndStats(newSchedule);
+                        updateSchedule(newSchedule);
                     }
                 } catch (err) { console.error("Drop error", err); }
             };
@@ -478,34 +596,47 @@
                 
                 const offList = newSchedule[day].off;
                 if (!offList || offList.length === 0) {
-                    alert("今日無休假人員可供抽籤召回！");
+                    showToast("今日無休假人員可供抽籤召回！", "error");
                     return;
                 }
                 
                 if (!newSchedule[day].recall) newSchedule[day].recall = [];
-
                 const randomIndex = Math.floor(Math.random() * offList.length);
                 const [recalledStaff] = offList.splice(randomIndex, 1);
-                
                 newSchedule[day].recall.push(recalledStaff);
                 
                 if (autoAdjustMode && day < getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth())) {
                     generateScheduleFrom(newSchedule, day + 1, false);
                 } else {
-                    updateScheduleAndStats(newSchedule);
+                    updateSchedule(newSchedule);
                 }
             };
 
-            // --- 人員管理 ---
-            const handleAddStaff = (name, role) => setStaffList([...staffList, { id: Date.now(), name, role, preferredOff: [], designatedShifts: [], fixedLocation: '' }]);
-            const handleRemoveStaff = (id) => setStaffList(staffList.filter(s => s.id !== id));
+            // 人員管理處理
+            const handleAddStaff = () => {
+                const nameInput = document.getElementById('newName');
+                const roleInput = document.getElementById('newRole');
+                if(nameInput.value.trim()){
+                    setStaffList([...staffList, { id: Date.now(), name: nameInput.value.trim(), role: roleInput.value, preferredOff: [], designatedShifts: [], fixedLocation: '' }]);
+                    nameInput.value = '';
+                    showToast("已新增人員");
+                }
+            };
+            
+            const handleRemoveStaff = (id) => {
+                if(confirm("確定要刪除這位人員嗎？")) {
+                    setStaffList(staffList.filter(s => s.id !== id));
+                    showToast("已刪除人員");
+                }
+            };
             
             const togglePreferredOff = (staffId, day) => {
                 setStaffList(staffList.map(s => {
                     if (s.id !== staffId) return s;
                     const currentOff = s.preferredOff;
                     if (currentOff.includes(day)) return { ...s, preferredOff: currentOff.filter(d => d !== day) };
-                    if (currentOff.length >= 6) { alert("每人每月最多選擇 6 天自選假"); return s; }
+                    // 將手動選假上限提高至 10 天
+                    if (currentOff.length >= 10) { showToast("每人每月最多選擇 10 天自選假", "warning"); return s; }
                     return { ...s, preferredOff: [...currentOff, day] };
                 }));
             };
@@ -530,6 +661,18 @@
                 setStaffList(staffList.map(s => s.id === staffId ? { ...s, fixedLocation: location } : s));
             };
 
+            // 清除資料
+            const handleResetData = () => {
+                if(confirm("警告：這將會清除所有排班與人員設定，並恢復預設狀態。確定嗎？")) {
+                    localStorage.removeItem('songhe_staff');
+                    localStorage.removeItem('songhe_schedule');
+                    setStaffList(INITIAL_STAFF);
+                    setSchedule({});
+                    showToast("系統已重置為預設狀態");
+                }
+            };
+
+            // --- UI 渲染區 ---
             const renderCalendar = () => {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
@@ -539,156 +682,137 @@
                 const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
                 return (
-                    <div className="grid grid-cols-7 gap-2">
-                        {['日', '一', '二', '三', '四', '五', '六'].map(d => (
-                            <div key={d} className="text-center font-bold text-gray-600 p-2 bg-gray-100 rounded">{d}</div>
-                        ))}
-                        {blanks.map((_, i) => <div key={`blank-${i}`} className="h-32 bg-gray-50/50 rounded" />)}
-                        {days.map(day => {
-                            const daySchedule = schedule[day];
-                            const dateObj = new Date(year, month, day);
-                            const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
-                            const holidayName = getTaiwanHoliday(year, month, day);
+                    <div className="overflow-x-auto pb-4">
+                        <div className="min-w-[900px]">
+                            <div className="grid grid-cols-7 gap-3">
+                                {['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'].map((d, i) => (
+                                    <div key={d} className={`text-center font-bold text-sm py-2 rounded-t-lg border-b-2 ${i === 0 || i === 6 ? 'bg-rose-50 text-rose-600 border-rose-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>{d}</div>
+                                ))}
+                                {blanks.map((_, i) => <div key={`blank-${i}`} className="h-40 bg-slate-50 rounded-xl border border-slate-100 opacity-50" />)}
+                                {days.map(day => {
+                                    const daySchedule = schedule[day];
+                                    const dateObj = new Date(year, month, day);
+                                    const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                                    const holidayName = getTaiwanHoliday(year, month, day);
 
-                            return (
-                                <div key={day} className={`min-h-[190px] border rounded p-1 text-xs relative flex flex-col ${isWeekend ? 'bg-orange-50' : 'bg-white'}`}>
-                                    <div className="flex justify-between items-center mb-1 border-b pb-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-bold text-base text-gray-700 ml-1">{day}</span>
-                                            {holidayName && (
-                                                <span className="text-[10px] bg-red-100 text-red-600 px-1 rounded border border-red-200">{holidayName}</span>
-                                            )}
-                                        </div>
-                                        {daySchedule && daySchedule.off.length >= 1 ? 
-                                            <CheckCircleIcon size={14} className="text-green-500" /> : 
-                                            daySchedule && <ShieldAlertIcon size={14} className="text-red-500" />
-                                        }
-                                    </div>
-                                    
-                                    {daySchedule ? (
-                                        <div className="flex-1 flex flex-col gap-1">
-                                            {/* 夜班區域 */}
-                                            <div className="bg-slate-800 text-white p-1 rounded shadow-sm">
-                                                <div className="flex items-center gap-1 font-bold mb-1 text-yellow-300 border-b border-slate-600 pb-1">
-                                                    <MoonIcon size={10} /> 夜班
+                                    return (
+                                        <div key={day} className={`min-h-[220px] rounded-xl border flex flex-col overflow-hidden transition-shadow hover:shadow-md ${isWeekend ? 'bg-orange-50/30 border-orange-100' : 'bg-white border-slate-200'}`}>
+                                            <div className={`flex justify-between items-center px-2 py-1.5 border-b ${isWeekend ? 'bg-orange-100/50' : 'bg-slate-50'}`}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`font-black text-lg ${isWeekend ? 'text-orange-600' : 'text-slate-700'}`}>{day}</span>
+                                                    {holidayName && <span className="text-[10px] bg-rose-100 text-rose-700 px-1.5 py-0.5 rounded border border-rose-200 font-bold tracking-wide">{holidayName}</span>}
                                                 </div>
-                                                <div className="mb-1">
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-[10px] text-blue-200">海總 ({daySchedule.nightShift['海總'].length})</span>
-                                                    </div>
-                                                    <div 
-                                                        className="flex flex-wrap gap-1 min-h-[16px] p-0.5 rounded border border-transparent hover:border-dashed hover:border-gray-400 bg-slate-700/50 transition-colors"
-                                                        onDragOver={(e) => e.preventDefault()}
-                                                        onDrop={(e) => handleDrop(e, day, 'haizong')}
-                                                    >
-                                                        {daySchedule.nightShift['海總'].map(s => (
-                                                            <span 
-                                                                key={s.id} draggable 
-                                                                onDragStart={(e) => handleDragStart(e, day, 'haizong', s.id)} onDragEnd={handleDragEnd}
-                                                                className={`text-[10px] px-1 rounded text-black cursor-move shadow-sm ${s.role==='mortician'?'bg-purple-200':'bg-cyan-200'}`}
-                                                            >{s.name}</span>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-[10px] text-green-200">高醫 ({daySchedule.nightShift['高醫'].length})</span>
-                                                    </div>
-                                                    <div 
-                                                        className="flex flex-wrap gap-1 min-h-[16px] p-0.5 rounded border border-transparent hover:border-dashed hover:border-gray-400 bg-slate-700/50 transition-colors"
-                                                        onDragOver={(e) => e.preventDefault()}
-                                                        onDrop={(e) => handleDrop(e, day, 'gaoyi')}
-                                                    >
-                                                        {daySchedule.nightShift['高醫'].map(s => (
-                                                            <span 
-                                                                key={s.id} draggable 
-                                                                onDragStart={(e) => handleDragStart(e, day, 'gaoyi', s.id)} onDragEnd={handleDragEnd}
-                                                                className={`text-[10px] px-1 rounded text-black cursor-move shadow-sm ${s.role==='mortician'?'bg-purple-200':'bg-cyan-200'}`}
-                                                            >{s.name}</span>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                                {daySchedule && daySchedule.off.length >= 1 ? 
+                                                    <Icons.Check size={16} className="text-emerald-500 drop-shadow-sm" /> : 
+                                                    daySchedule && <Icons.Alert size={16} className="text-rose-500 drop-shadow-sm" />
+                                                }
                                             </div>
-
-                                            {/* 待命區域 */}
-                                            <div className="bg-blue-50 p-1 rounded border border-blue-100 flex-1">
-                                                <div className="text-[10px] text-blue-800 font-bold mb-1 flex items-center gap-1">
-                                                    <BriefcaseIcon size={10}/> 待命 ({daySchedule.standby.length})
-                                                </div>
-                                                <div 
-                                                    className="flex flex-wrap gap-1 min-h-[20px] p-0.5 rounded border border-transparent hover:border-dashed hover:border-blue-300 transition-colors"
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                    onDrop={(e) => handleDrop(e, day, 'standby')}
-                                                >
-                                                    {daySchedule.standby.map(s => (
-                                                        <span 
-                                                            key={s.id} draggable 
-                                                            onDragStart={(e) => handleDragStart(e, day, 'standby', s.id)} onDragEnd={handleDragEnd}
-                                                            className={`text-[10px] px-1 rounded border cursor-move shadow-sm ${s.preferredOff.includes(day+1) ? 'bg-orange-100 border-orange-200 text-orange-700 font-bold' : 'bg-white border-blue-100 text-gray-600'}`}
+                                            
+                                            {daySchedule ? (
+                                                <div className="flex-1 flex flex-col gap-1.5 p-1.5 bg-slate-50/50">
+                                                    {/* 海總區塊 */}
+                                                    <div className="bg-blue-50/80 rounded-lg border border-blue-100 overflow-hidden shadow-sm">
+                                                        <div className="text-[10px] font-bold text-blue-800 bg-blue-100/50 px-2 py-1 flex justify-between">
+                                                            <span>📍 海總夜班</span>
+                                                            <span className="bg-white px-1.5 rounded text-blue-600">{daySchedule.nightShift['海總'].length}人</span>
+                                                        </div>
+                                                        <div 
+                                                            className="flex flex-wrap gap-1 p-1.5 min-h-[32px] hover:bg-blue-100/30 transition-colors"
+                                                            onDragOver={(e) => e.preventDefault()}
+                                                            onDrop={(e) => handleDrop(e, day, 'haizong')}
                                                         >
-                                                            {s.name} {s.preferredOff.includes(day+1) && '(休前)'}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                                            {daySchedule.nightShift['海總'].map(s => (
+                                                                <span key={s.id} draggable onDragStart={(e) => handleDragStart(e, day, 'haizong', s.id)} onDragEnd={handleDragEnd}
+                                                                    className={`text-[11px] px-1.5 py-0.5 rounded cursor-move shadow-sm border ${s.role==='mortician'?'bg-purple-100 text-purple-800 border-purple-200':'bg-sky-100 text-sky-800 border-sky-200'}`}
+                                                                >{s.name}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
 
-                                            {/* 召回區域 */}
-                                            {(daySchedule.recall && daySchedule.recall.length > 0) && (
-                                                <div className="bg-orange-50 p-1 rounded border border-orange-200">
-                                                    <div className="text-[10px] text-orange-600 font-bold mb-1 flex items-center gap-1">
-                                                        <ShieldAlertIcon size={10}/> 召回 ({daySchedule.recall.length})
+                                                    {/* 高醫區塊 */}
+                                                    <div className="bg-emerald-50/80 rounded-lg border border-emerald-100 overflow-hidden shadow-sm">
+                                                        <div className="text-[10px] font-bold text-emerald-800 bg-emerald-100/50 px-2 py-1 flex justify-between">
+                                                            <span>📍 高醫夜班</span>
+                                                            <span className="bg-white px-1.5 rounded text-emerald-600">{daySchedule.nightShift['高醫'].length}人</span>
+                                                        </div>
+                                                        <div 
+                                                            className="flex flex-wrap gap-1 p-1.5 min-h-[32px] hover:bg-emerald-100/30 transition-colors"
+                                                            onDragOver={(e) => e.preventDefault()}
+                                                            onDrop={(e) => handleDrop(e, day, 'gaoyi')}
+                                                        >
+                                                            {daySchedule.nightShift['高醫'].map(s => (
+                                                                <span key={s.id} draggable onDragStart={(e) => handleDragStart(e, day, 'gaoyi', s.id)} onDragEnd={handleDragEnd}
+                                                                    className={`text-[11px] px-1.5 py-0.5 rounded cursor-move shadow-sm border ${s.role==='mortician'?'bg-purple-100 text-purple-800 border-purple-200':'bg-sky-100 text-sky-800 border-sky-200'}`}
+                                                                >{s.name}</span>
+                                                            ))}
+                                                        </div>
                                                     </div>
-                                                    <div 
-                                                        className="flex flex-wrap gap-1 min-h-[16px] p-0.5 rounded border border-transparent hover:border-dashed hover:border-orange-300 transition-colors"
-                                                        onDragOver={(e) => e.preventDefault()}
-                                                        onDrop={(e) => handleDrop(e, day, 'recall')}
-                                                    >
-                                                        {daySchedule.recall.map(s => (
-                                                            <span 
-                                                                key={s.id} draggable 
-                                                                onDragStart={(e) => handleDragStart(e, day, 'recall', s.id)} onDragEnd={handleDragEnd}
-                                                                className="text-[10px] px-1 bg-orange-200 text-orange-800 rounded border border-orange-300 cursor-move shadow-sm"
-                                                            >{s.name}</span>
-                                                        ))}
+
+                                                    {/* 待命區塊 */}
+                                                    <div className="bg-slate-100/80 rounded-lg border border-slate-200 flex-1 overflow-hidden">
+                                                        <div className="text-[10px] font-bold text-slate-600 px-2 pt-1 flex items-center gap-1">
+                                                            <Icons.Briefcase size={12}/> 待命 ({daySchedule.standby.length})
+                                                        </div>
+                                                        <div 
+                                                            className="flex flex-wrap gap-1 p-1.5 min-h-[24px] hover:bg-slate-200/50 transition-colors"
+                                                            onDragOver={(e) => e.preventDefault()}
+                                                            onDrop={(e) => handleDrop(e, day, 'standby')}
+                                                        >
+                                                            {daySchedule.standby.map(s => (
+                                                                <span key={s.id} draggable onDragStart={(e) => handleDragStart(e, day, 'standby', s.id)} onDragEnd={handleDragEnd}
+                                                                    className={`text-[10px] px-1.5 py-0.5 rounded border cursor-move shadow-sm ${s.preferredOff.includes(day+1) ? 'bg-amber-100 border-amber-300 text-amber-800 font-bold' : 'bg-white border-slate-300 text-slate-600'}`}
+                                                                >{s.name} {s.preferredOff.includes(day+1) && '(休前)'}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 召回區塊 */}
+                                                    {(daySchedule.recall && daySchedule.recall.length > 0) && (
+                                                        <div className="bg-orange-100/80 rounded-lg border border-orange-200 shadow-sm animate-pulse">
+                                                            <div className="text-[10px] text-orange-700 font-bold px-2 pt-1 flex items-center gap-1">
+                                                                <Icons.Alert size={12}/> 被召回 ({daySchedule.recall.length})
+                                                            </div>
+                                                            <div className="flex flex-wrap gap-1 p-1.5" onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e, day, 'recall')}>
+                                                                {daySchedule.recall.map(s => (
+                                                                    <span key={s.id} draggable onDragStart={(e) => handleDragStart(e, day, 'recall', s.id)} onDragEnd={handleDragEnd}
+                                                                        className="text-[10px] px-1.5 py-0.5 bg-orange-500 text-white rounded border border-orange-600 cursor-move shadow-sm font-bold"
+                                                                    >{s.name}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 休假區塊 */}
+                                                    <div className="mt-auto bg-rose-50 rounded-lg border border-rose-100 overflow-hidden shadow-sm">
+                                                        <div className="flex justify-between items-center px-2 py-1 bg-rose-100/50">
+                                                            <div className="text-[10px] text-rose-700 flex items-center gap-1 font-bold">
+                                                                <Icons.Coffee size={12}/> 休假 ({daySchedule.off.length})
+                                                            </div>
+                                                            <button onClick={() => handleRandomRecall(day)} className="text-[10px] bg-white hover:bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded border border-rose-200 shadow-sm transition-colors flex items-center gap-1 font-bold" title="隨機抽籤召回一位休假人員">
+                                                                <Icons.Dice size={12}/> 抽籤
+                                                            </button>
+                                                        </div>
+                                                        <div 
+                                                            className="flex flex-wrap gap-1 p-1.5 min-h-[28px] hover:bg-rose-100/50 transition-colors"
+                                                            onDragOver={(e) => e.preventDefault()}
+                                                            onDrop={(e) => handleDrop(e, day, 'off')}
+                                                        >
+                                                            {daySchedule.off.map(s => (
+                                                                <span key={s.id} draggable onDragStart={(e) => handleDragStart(e, day, 'off', s.id)} onDragEnd={handleDragEnd}
+                                                                    className="text-[10px] px-1.5 py-0.5 bg-white text-rose-600 rounded border border-rose-200 cursor-move shadow-sm font-medium"
+                                                                >{s.name}</span>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 </div>
+                                            ) : (
+                                                <div className="flex-1 flex items-center justify-center text-slate-300 text-sm font-medium bg-slate-50">尚未排班</div>
                                             )}
-
-                                            {/* 休假區域 */}
-                                            <div className="mt-auto pt-1 bg-red-50/40 p-1 rounded border border-red-50">
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <div className="text-[10px] text-red-500 flex items-center gap-1 font-bold">
-                                                        <CoffeeIcon size={10}/> 休假 ({daySchedule.off.length})
-                                                    </div>
-                                                    <button 
-                                                        onClick={() => handleRandomRecall(day)}
-                                                        className="text-[10px] bg-red-100 hover:bg-red-200 text-red-700 px-1.5 py-0.5 rounded border border-red-200 shadow-sm transition-colors flex items-center gap-1"
-                                                        title="隨機召回一位休假人員"
-                                                    >
-                                                        🎲 抽籤
-                                                    </button>
-                                                </div>
-                                                <div 
-                                                    className="flex flex-wrap gap-1 min-h-[20px] p-0.5 rounded border border-transparent hover:border-dashed hover:border-red-300 transition-colors"
-                                                    onDragOver={(e) => e.preventDefault()}
-                                                    onDrop={(e) => handleDrop(e, day, 'off')}
-                                                >
-                                                    {daySchedule.off.map(s => (
-                                                        <span 
-                                                            key={s.id} draggable 
-                                                            onDragStart={(e) => handleDragStart(e, day, 'off', s.id)} onDragEnd={handleDragEnd}
-                                                            className="text-[10px] px-1 bg-red-50 text-red-600 rounded border border-red-100 cursor-move shadow-sm"
-                                                        >{s.name}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
                                         </div>
-                                    ) : (
-                                        <div className="text-center text-gray-300 mt-4">未排班</div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </div>
                 );
             };
@@ -702,205 +826,211 @@
                 const avgGY = totalGY / (stats.length || 1);
 
                 return (
-                    <div className="bg-white p-4 rounded-lg shadow-sm mt-6">
-                        <h3 className="font-bold text-gray-700 flex items-center gap-2 mb-4">
-                            <BarChart3Icon size={20} /> 排班統計
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mt-6">
+                        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                            <Icons.BarChart size={24} className="text-primary" /> 本月排班統計
                         </h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-100 text-gray-600">
+                        <div className="overflow-x-auto rounded-lg border border-slate-200">
+                            <table className="w-full text-sm text-left whitespace-nowrap">
+                                <thead className="bg-slate-50 text-slate-600 border-b border-slate-200">
                                     <tr>
-                                        <th className="p-2">姓名</th>
-                                        <th className="p-2">職位</th>
-                                        <th className="p-2 text-center text-red-600">休假</th>
-                                        <th className="p-2 text-center text-slate-800 font-bold">夜班總數 (均{avgShifts.toFixed(1)})</th>
-                                        <th className="p-2 text-center text-blue-600">海總 (均{avgHZ.toFixed(1)})</th>
-                                        <th className="p-2 text-center text-green-600">高醫 (均{avgGY.toFixed(1)})</th>
-                                        <th className="p-2 text-center text-orange-600">被召回次數</th>
+                                        <th className="p-3 font-semibold">姓名</th>
+                                        <th className="p-3 font-semibold">職位</th>
+                                        <th className="p-3 font-semibold text-center text-rose-600">休假天數</th>
+                                        <th className="p-3 font-semibold text-center text-slate-800 bg-slate-100">夜班總數 <span className="text-xs font-normal text-slate-500">(均 {avgShifts.toFixed(1)})</span></th>
+                                        <th className="p-3 font-semibold text-center text-blue-600">海總班 <span className="text-xs font-normal text-blue-400">(均 {avgHZ.toFixed(1)})</span></th>
+                                        <th className="p-3 font-semibold text-center text-emerald-600">高醫班 <span className="text-xs font-normal text-emerald-400">(均 {avgGY.toFixed(1)})</span></th>
+                                        <th className="p-3 font-semibold text-center text-orange-600">被召回</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {stats.sort((a,b) => b.nightShiftCount - a.nightShiftCount).map(s => (
-                                        <tr key={s.id} className="border-b hover:bg-gray-50">
-                                            <td className="p-2 font-medium">
-                                                {s.name}
-                                                {s.fixedLocation && <span className="ml-1 text-[10px] bg-slate-200 text-slate-600 px-1 rounded">固: {s.fixedLocation}</span>}
+                                        <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50">
+                                            <td className="p-3 font-medium text-slate-800">
+                                                <div className="flex items-center gap-2">
+                                                    {s.name}
+                                                    {s.fixedLocation && <span className="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded font-bold">固: {s.fixedLocation}</span>}
+                                                </div>
                                             </td>
-                                            <td className="p-2 text-xs text-gray-500">{s.role === 'mortician' ? '禮儀師' : '助理'}</td>
-                                            <td className={`p-2 text-center font-bold ${s.offCount < 5 ? 'text-red-500 bg-red-100' : (s.offCount > 5 ? 'text-blue-600' : 'text-green-600')}`}>{s.offCount}</td>
-                                            <td className={`p-2 text-center font-bold text-lg ${Math.abs(s.nightShiftCount - avgShifts) > 2 ? 'text-red-500' : 'text-slate-800'}`}>{s.nightShiftCount}</td>
-                                            <td className={`p-2 text-center ${Math.abs(s.haizongCount - avgHZ) > 3 ? 'text-red-500 font-bold' : 'text-blue-600'}`}>{s.haizongCount}</td>
-                                            <td className={`p-2 text-center ${Math.abs(s.gaoyiCount - avgGY) > 3 ? 'text-red-500 font-bold' : 'text-green-600'}`}>{s.gaoyiCount}</td>
-                                            <td className="p-2 text-center font-bold text-orange-500">{s.recallCount > 0 ? s.recallCount : '-'}</td>
+                                            <td className="p-3 text-xs text-slate-500">{s.role === 'mortician' ? '禮儀師' : '助理'}</td>
+                                            <td className="p-3">
+                                                <div className={`mx-auto w-8 h-8 flex items-center justify-center rounded-full font-bold ${s.offCount < 5 ? 'bg-rose-100 text-rose-600 border border-rose-200' : (s.offCount > 5 ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600')}`}>{s.offCount}</div>
+                                            </td>
+                                            <td className="p-3 bg-slate-50">
+                                                <div className={`mx-auto w-8 h-8 flex items-center justify-center rounded-lg font-black text-base ${Math.abs(s.nightShiftCount - avgShifts) > 2 ? 'text-rose-600 bg-rose-50 border border-rose-200' : 'text-slate-800 bg-white border border-slate-200'}`}>{s.nightShiftCount}</div>
+                                            </td>
+                                            <td className="p-3 text-center font-medium">
+                                                <span className={Math.abs(s.haizongCount - avgHZ) > 3 ? 'text-rose-500 font-bold bg-rose-50 px-2 py-1 rounded' : 'text-blue-600'}>{s.haizongCount}</span>
+                                            </td>
+                                            <td className="p-3 text-center font-medium">
+                                                <span className={Math.abs(s.gaoyiCount - avgGY) > 3 ? 'text-rose-500 font-bold bg-rose-50 px-2 py-1 rounded' : 'text-emerald-600'}>{s.gaoyiCount}</span>
+                                            </td>
+                                            <td className="p-3 text-center font-bold text-orange-500">{s.recallCount > 0 ? s.recallCount : <span className="text-slate-300">-</span>}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
-                            <div className="text-xs text-gray-500 mt-2 text-right">
-                                * 手動拖曳調整人員後，上方表格數據會即時更新。
-                            </div>
                         </div>
                     </div>
                 );
             };
 
             return (
-                <div className="min-h-screen bg-gray-50 p-6 font-sans">
-                    <div className="max-w-6xl mx-auto">
-                        <header className="mb-6 flex flex-wrap justify-between items-center bg-white p-4 rounded-lg shadow-sm gap-4">
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                                    <MoonIcon className="text-indigo-600" /> 崧鶴排班
-                                </h1>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center gap-1 bg-gray-100 rounded-md p-1">
-                                    <button onClick={() => changeMonth(-1)} className="p-1 hover:bg-white rounded shadow-sm"><ChevronLeftIcon size={20}/></button>
-                                    <select value={currentDate.getFullYear()} onChange={handleYearChange} className="bg-transparent font-bold text-gray-700 text-lg border-none focus:ring-0 cursor-pointer">
-                                        {Array.from({length: 10}, (_, i) => 2026 + i).map(y => <option key={y} value={y}>{y}年</option>)}
-                                    </select>
-                                    <select value={currentDate.getMonth()} onChange={handleMonthChange} className="bg-transparent font-bold text-gray-700 text-lg border-none focus:ring-0 cursor-pointer">
-                                        {Array.from({length: 12}, (_, i) => i).map(m => <option key={m} value={m}>{m + 1}月</option>)}
-                                    </select>
-                                    <button onClick={() => changeMonth(1)} className="p-1 hover:bg-white rounded shadow-sm"><ChevronRightIcon size={20}/></button>
+                <div className="min-h-screen pb-12">
+                    {/* Header */}
+                    <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between py-4 gap-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-primary/10 p-2 rounded-lg"><Icons.Building className="text-primary" size={24} /></div>
+                                    <h1 className="text-2xl font-black text-slate-800 tracking-tight">崧鶴排班系統</h1>
                                 </div>
-                                <div className="flex gap-2">
-                                    <button onClick={() => setActiveTab('calendar')} className={`px-4 py-2 rounded-md flex items-center gap-2 ${activeTab === 'calendar' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                                        <CalendarIcon size={18} /> 排班表
-                                    </button>
-                                    <button onClick={() => setActiveTab('staff')} className={`px-4 py-2 rounded-md flex items-center gap-2 ${activeTab === 'staff' ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
-                                        <UsersIcon size={18} /> 人員設定
-                                    </button>
+                                
+                                <div className="flex flex-wrap items-center gap-4">
+                                    <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200 shadow-inner">
+                                        <button onClick={() => changeMonth(-1)} className="p-1.5 text-slate-600 hover:bg-white hover:text-primary hover:shadow-sm rounded-md transition-all"><Icons.ChevronLeft size={20}/></button>
+                                        <select value={currentDate.getFullYear()} onChange={handleYearChange} className="bg-transparent font-bold text-slate-700 text-center focus:outline-none cursor-pointer px-2 appearance-none">
+                                            {Array.from({length: 10}, (_, i) => 2026 + i).map(y => <option key={y} value={y}>{y}年</option>)}
+                                        </select>
+                                        <select value={currentDate.getMonth()} onChange={handleMonthChange} className="bg-transparent font-bold text-slate-700 text-center focus:outline-none cursor-pointer pr-2 appearance-none">
+                                            {Array.from({length: 12}, (_, i) => i).map(m => <option key={m} value={m}>{m + 1}月</option>)}
+                                        </select>
+                                        <button onClick={() => changeMonth(1)} className="p-1.5 text-slate-600 hover:bg-white hover:text-primary hover:shadow-sm rounded-md transition-all"><Icons.ChevronRight size={20}/></button>
+                                    </div>
+                                    
+                                    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                                        <button onClick={() => setActiveTab('calendar')} className={`px-4 py-2 rounded-md flex items-center gap-2 text-sm font-bold transition-all ${activeTab === 'calendar' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
+                                            <Icons.Calendar size={18} /> 排班表
+                                        </button>
+                                        <button onClick={() => setActiveTab('staff')} className={`px-4 py-2 rounded-md flex items-center gap-2 text-sm font-bold transition-all ${activeTab === 'staff' ? 'bg-white text-primary shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
+                                            <Icons.Users size={18} /> 人員管理
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
-                        </header>
+                        </div>
+                    </div>
 
+                    {/* Main Content */}
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
                         {activeTab === 'calendar' && (
-                            <div className="space-y-4">
-                                <div className="flex flex-wrap justify-between items-center bg-white p-4 rounded-lg shadow-sm gap-4">
-                                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                                        <div className="font-bold text-gray-800">操作說明：</div>
-                                        <div className="flex items-center gap-1 text-red-500">🎲 點擊休假區可隨機抽籤召回</div>
+                            <div className="space-y-6 transform transition-all duration-300">
+                                {/* Control Panel */}
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+                                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                                        <Icons.Moon size={18} className="text-amber-500" />
+                                        <span>拖曳人員卡片可進行微調。點擊休假區可 <span className="font-bold text-rose-600 border-b border-rose-200">隨機召回</span>。</span>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-gray-700 bg-indigo-50 px-3 py-2 rounded-md hover:bg-indigo-100 border border-indigo-100 transition-colors">
-                                            <input type="checkbox" checked={autoAdjustMode} onChange={(e) => setAutoAdjustMode(e.target.checked)} className="w-4 h-4 text-indigo-600 rounded cursor-pointer" />
-                                            連動調整模式
+                                    
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700 bg-slate-50 px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
+                                            <input type="checkbox" checked={autoAdjustMode} onChange={(e) => setAutoAdjustMode(e.target.checked)} className="w-4 h-4 text-primary rounded border-slate-300 focus:ring-primary" />
+                                            拖曳連動調整
                                         </label>
-                                        <button onClick={() => {setSchedule({}); setStats([]);}} className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2 border border-red-200">
-                                            <Trash2Icon size={18} /> 清空
+                                        <button onClick={() => {if(confirm("確定要清空本月排班嗎？")) {setSchedule({}); setStats([]); showToast("已清空本月排班");}}} className="px-4 py-2 text-rose-600 bg-white hover:bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors">
+                                            <Icons.Trash size={16} /> 清空本月
                                         </button>
-                                        <button onClick={generateSchedule} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md flex items-center gap-2 shadow-sm">
-                                            <RefreshCwIcon size={18} /> 自動生成
+                                        <button onClick={generateScheduleFull} className="px-5 py-2 bg-primary hover:bg-indigo-700 text-white rounded-lg flex items-center gap-2 text-sm font-bold shadow-sm shadow-indigo-200 transition-all active:scale-95">
+                                            <Icons.Refresh size={16} /> 自動排班
                                         </button>
                                     </div>
                                 </div>
 
+                                {/* System Logs */}
                                 {logs.length > 0 && (
-                                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4 text-sm text-yellow-800">
-                                        <h3 className="font-bold flex items-center gap-2 mb-2"><ShieldAlertIcon size={16}/> 系統訊息</h3>
-                                        <ul className="list-disc pl-5 max-h-24 overflow-y-auto">{logs.map((log, idx) => <li key={idx}>{log}</li>)}</ul>
+                                    <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-sm text-amber-800 shadow-sm">
+                                        <h3 className="font-bold flex items-center gap-2 mb-2"><Icons.Alert size={18} className="text-amber-600"/> 排班異常提示</h3>
+                                        <ul className="list-disc pl-6 max-h-32 overflow-y-auto space-y-1">
+                                            {logs.map((log, idx) => <li key={idx}>{log}</li>)}
+                                        </ul>
                                     </div>
                                 )}
 
-                                <div className="bg-white p-4 rounded-lg shadow-sm overflow-hidden">
-                                    {renderCalendar()}
-                                </div>
+                                {/* Calendar & Stats */}
+                                {renderCalendar()}
                                 {stats.length > 0 && renderStats()}
                             </div>
                         )}
 
                         {activeTab === 'staff' && (
-                            <div className="bg-white p-6 rounded-lg shadow-sm">
-                                <h2 className="text-xl font-bold mb-4 flex items-center gap-2"><SettingsIcon className="text-gray-600" /> 人員管理</h2>
-                                <div className="mb-6 p-4 bg-indigo-50 rounded-lg text-sm text-indigo-800">
-                                    <h3 className="font-bold mb-2">設定說明：</h3>
-                                    <ul className="list-disc pl-5 space-y-1">
-                                        <li>點擊日期可設定「自選假」（每人最多 6 天）。</li>
-                                        <li>「固定駐點」選項會將該人員整個月強制分配至該單位（只要輪到夜班必去該處）。</li>
-                                    </ul>
+                            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 animate-in fade-in duration-300">
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                        <Icons.Settings className="text-primary" size={24} /> 人員與規則設定
+                                    </h2>
+                                    <button onClick={handleResetData} className="text-xs text-rose-500 hover:text-rose-700 underline underline-offset-2">
+                                        重置系統所有資料
+                                    </button>
                                 </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse">
+                                
+                                <div className="mb-6 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 text-sm text-indigo-900 flex gap-3">
+                                    <Icons.Alert className="text-indigo-500 shrink-0" size={20} />
+                                    <div>
+                                        <span className="font-bold">設定說明：</span> 本月自選假人工設定上限為 10 天（自動隨機排班基準為 6 天）。若設定「固定駐點」，該人員整個月只要輪到夜班，將強制派往該單位。資料會自動保存在您的瀏覽器中。<br/>
+                                        <span className="text-rose-600 font-bold mt-1 inline-block">自動排班規則：(1) 劉春榮每週一、三、五不排夜班；(2) 黃勇在與邱億銘不會在同地點排班。</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="overflow-x-auto rounded-xl border border-slate-200 mb-6">
+                                    <table className="w-full text-left border-collapse whitespace-nowrap">
                                         <thead>
-                                            <tr className="border-b-2 border-gray-200 bg-gray-50">
-                                                <th className="p-3">姓名</th>
-                                                <th className="p-3">職位</th>
-                                                <th className="p-3">固定駐點 (全月)</th>
-                                                <th className="p-3">指定自選假</th>
-                                                <th className="p-3">單日指定排班 (跳脫連2休)</th>
-                                                <th className="p-3 text-right">刪除</th>
+                                            <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-sm">
+                                                <th className="p-4 font-semibold w-[120px]">姓名</th>
+                                                <th className="p-4 font-semibold w-[100px]">職位</th>
+                                                <th className="p-4 font-semibold w-[150px]">固定駐點 (全月)</th>
+                                                <th className="p-4 font-semibold">自選假設定</th>
+                                                <th className="p-4 font-semibold">單日指定 (優先權最高)</th>
+                                                <th className="p-4 font-semibold text-right w-[80px]">操作</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {staffList.map(staff => (
-                                                <tr key={staff.id} className="border-b border-gray-100 hover:bg-gray-50">
-                                                    <td className="p-3 font-medium">{staff.name}</td>
-                                                    <td className="p-3"><span className={`px-2 py-1 rounded text-xs ${staff.role==='mortician'?'bg-purple-100 text-purple-800':'bg-cyan-100 text-cyan-800'}`}>{staff.role==='mortician'?'禮儀師':'助理'}</span></td>
-                                                    <td className="p-3">
-                                                        <select 
-                                                            className="text-xs border border-gray-300 rounded p-1 focus:outline-none bg-white cursor-pointer"
-                                                            value={staff.fixedLocation || ''}
-                                                            onChange={(e) => updateFixedLocation(staff.id, e.target.value)}
-                                                        >
-                                                            <option value="">無</option>
-                                                            <option value="海總">海總</option>
-                                                            <option value="高醫">高醫</option>
-                                                        </select>
-                                                    </td>
-                                                    <td className="p-3">
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {staff.preferredOff.map(d => <span key={d} onClick={()=>togglePreferredOff(staff.id, d)} className="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs cursor-pointer hover:bg-red-200 flex items-center gap-1">{d}號 x</span>)}
-                                                            {staff.preferredOff.length < 6 && (
-                                                                <select className="text-xs border rounded px-1 py-1 bg-white" onChange={(e)=>{if(e.target.value) togglePreferredOff(staff.id, parseInt(e.target.value)); e.target.value="";}}>
-                                                                    <option value="">+假</option>
-                                                                    {Array.from({length: 31}, (_,i)=>i+1).map(d => !staff.preferredOff.includes(d) && <option key={d} value={d}>{d}號</option>)}
-                                                                </select>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-3">
-                                                        <div className="flex flex-wrap gap-1 items-center">
-                                                            {staff.designatedShifts?.map(ds => (
-                                                                <span key={ds.date} onClick={()=>removeDesignatedShift(staff.id, ds.date)} className={`px-2 py-1 rounded-full text-xs cursor-pointer flex items-center gap-1 ${ds.location === '待命' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}>
-                                                                    {ds.date}號 {ds.location} x
-                                                                </span>
-                                                            ))}
-                                                            <div className="flex items-center border rounded bg-white overflow-hidden shadow-sm">
-                                                                <select id={`ds-date-${staff.id}`} className="text-xs p-1 focus:outline-none bg-transparent cursor-pointer">
-                                                                    <option value="">日期</option>
-                                                                    {Array.from({length: 31}, (_,i)=>i+1).map(d => <option key={d} value={d}>{d}</option>)}
-                                                                </select>
-                                                                <select id={`ds-loc-${staff.id}`} className="text-xs p-1 focus:outline-none bg-transparent border-l cursor-pointer">
-                                                                    <option value="海總">海總</option>
-                                                                    <option value="高醫">高醫</option>
-                                                                    <option value="待命">待命</option>
-                                                                </select>
-                                                                <button onClick={() => {
-                                                                    const d = document.getElementById(`ds-date-${staff.id}`).value;
-                                                                    const l = document.getElementById(`ds-loc-${staff.id}`).value;
-                                                                    if (d && l) {
-                                                                        addDesignatedShift(staff.id, parseInt(d), l);
-                                                                        document.getElementById(`ds-date-${staff.id}`).value = '';
-                                                                    }
-                                                                }} className="text-xs bg-gray-100 hover:bg-gray-200 p-1 px-2 border-l transition-colors">+</button>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="p-3 text-right"><button onClick={()=>handleRemoveStaff(staff.id)} className="text-gray-400 hover:text-red-500"><Trash2Icon size={16}/></button></td>
-                                                </tr>
+                                                <StaffRow 
+                                                    key={staff.id} 
+                                                    staff={staff} 
+                                                    onRemove={handleRemoveStaff}
+                                                    onToggleOff={togglePreferredOff}
+                                                    onAddShift={addDesignatedShift}
+                                                    onRemoveShift={removeDesignatedShift}
+                                                    onUpdateLocation={updateFixedLocation}
+                                                />
                                             ))}
+                                            {staffList.length === 0 && (
+                                                <tr><td colSpan="6" className="p-8 text-center text-slate-400">目前沒有任何人員資料</td></tr>
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
-                                <div className="mt-6 p-4 bg-gray-100 rounded-lg flex items-end gap-3">
-                                    <div><label className="block text-xs font-bold text-gray-500 mb-1">姓名</label><input id="newName" type="text" className="border rounded p-2 text-sm" placeholder="輸入姓名" /></div>
-                                    <div><label className="block text-xs font-bold text-gray-500 mb-1">職位</label><select id="newRole" className="border rounded p-2 text-sm"><option value="mortician">禮儀師</option><option value="assistant">助理</option></select></div>
-                                    <button onClick={()=>{const n=document.getElementById('newName').value; const r=document.getElementById('newRole').value; if(n){handleAddStaff(n,r); document.getElementById('newName').value='';}}} className="bg-green-600 text-white px-4 py-2 rounded-md text-sm hover:bg-green-700 flex items-center gap-1"><PlusIcon size={16}/> 新增</button>
+                                
+                                <div className="p-5 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-end gap-4">
+                                    <div className="flex-1 min-w-[200px]">
+                                        <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">新增人員姓名</label>
+                                        <input id="newName" type="text" className="w-full border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-2.5 text-sm outline-none transition-all shadow-sm" placeholder="輸入姓名 (例如: 陳小明)" />
+                                    </div>
+                                    <div className="w-[150px]">
+                                        <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wider">職位</label>
+                                        <select id="newRole" className="custom-select w-full border border-slate-300 focus:border-primary focus:ring-1 focus:ring-primary rounded-lg p-2.5 text-sm outline-none bg-white shadow-sm cursor-pointer">
+                                            <option value="mortician">禮儀師</option>
+                                            <option value="assistant">助理</option>
+                                        </select>
+                                    </div>
+                                    <button onClick={handleAddStaff} className="bg-emerald-600 text-white px-5 py-2.5 rounded-lg text-sm font-bold hover:bg-emerald-700 flex items-center gap-2 shadow-sm transition-all active:scale-95">
+                                        <Icons.Plus size={18}/> 新增人員
+                                    </button>
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </main>
+
+                    {/* Toast Notification */}
+                    {toast && (
+                        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+                            <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${toast.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : toast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+                                {toast.type === 'error' ? <Icons.Alert size={20} className="text-rose-500" /> : toast.type === 'warning' ? <Icons.Alert size={20} className="text-amber-500" /> : <Icons.Check size={20} className="text-emerald-500" />}
+                                <span className="font-bold text-sm">{toast.message}</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
