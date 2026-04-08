@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>崧鶴排班系統 </title>
+    <title>崧鶴排班系統 - 專業優化版</title>
     
     <!-- 引入 Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -91,12 +91,12 @@
             { id: 5, name: '胡智欽', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 6, name: '黃勇在', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 7, name: '馬育謙', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
+            { id: 14, name: '邱億銘', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 9, name: '林俊宇', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 10, name: '童淙鈿', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 11, name: '劉惠婷', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 12, name: '謝汶佳', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 13, name: '李瀚雅', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
-            { id: 14, name: '邱億銘', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
         ];
 
         // --- 台灣假日資料 (完整版 2026-2035) ---
@@ -971,14 +971,6 @@
                                     <button onClick={handleResetData} className="text-xs text-rose-500 hover:text-rose-700 underline underline-offset-2">
                                         重置系統所有資料
                                     </button>
-                                </div>
-                                
-                                <div className="mb-6 p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 text-sm text-indigo-900 flex gap-3">
-                                    <Icons.Alert className="text-indigo-500 shrink-0" size={20} />
-                                    <div>
-                                        <span className="font-bold">設定說明：</span> 本月自選假人工設定上限為 10 天（自動隨機排班基準為 6 天）。若設定「固定駐點」，該人員整個月只要輪到夜班，將強制派往該單位。資料會自動保存在您的瀏覽器中。<br/>
-                                        <span className="text-rose-600 font-bold mt-1 inline-block">自動排班規則：(1) 劉春榮每週一、三、五不排夜班；(2) 黃勇在與邱億銘不會在同地點排班；(3) 王世通、劉宗坤、陳柏融會被拆開，不會排在同一個單位。</span>
-                                    </div>
                                 </div>
                                 
                                 <div className="overflow-x-auto rounded-xl border border-slate-200 mb-6">
