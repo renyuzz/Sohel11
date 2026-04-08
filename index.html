@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>崧鶴排班系統 - 專業優化版</title>
+    <title>崧鶴排班系統</title>
     
-    <!-- 引入 Tailwind CSS (CDN) -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 配置 Tailwind 主題顏色 -->
+    <!-- Tailwind Config -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#4f46e5', // Indigo 600
-                        secondary: '#0ea5e9', // Sky 500
+                        primary: '#4f46e5',
+                        secondary: '#0ea5e9',
                     },
                     fontFamily: {
                         sans: ['"Noto Sans TC"', 'system-ui', '-apple-system', 'sans-serif'],
@@ -25,29 +25,30 @@
         }
     </script>
     
-    <!-- 引入 Google Fonts -->
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <!-- 引入 React 和 ReactDOM (CDN) -->
+    <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     
-    <!-- 引入 Babel 用於解析 JSX (CDN) -->
+    <!-- Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
         body { background-color: #f8fafc; font-family: 'Noto Sans TC', sans-serif; }
-        /* 增加拖曳時的視覺回饋與自定義滾動條 */
+        
+        /* Drag visual feedback */
         .cursor-move { cursor: move; cursor: grab; }
         .cursor-move:active { cursor: grabbing; }
         
-        /* 美化滾動條 */
+        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* 隱藏預設的下拉選單箭頭以美化 */
+        /* Hide default select arrow */
         select.custom-select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.5rem center; background-size: 1em; padding-right: 2rem; }
     </style>
 </head>
@@ -57,7 +58,7 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
-        // --- 1. 內建圖示組件 (Lucide 風格) ---
+        // --- 1. Icon Components ---
         const IconWrapper = ({ children, color = "currentColor", size = 20, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
@@ -82,7 +83,7 @@
             Building: (props) => <IconWrapper {...props}><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></IconWrapper>
         };
 
-        // --- 2. 初始模擬資料 ---
+        // --- 2. Initial Data ---
         const INITIAL_STAFF = [
             { id: 1, name: '王世通', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
             { id: 2, name: '劉宗坤', role: 'mortician', preferredOff: [], designatedShifts: [], fixedLocation: '' },
@@ -99,7 +100,7 @@
             { id: 13, name: '李瀚雅', role: 'assistant', preferredOff: [], designatedShifts: [], fixedLocation: '' },
         ];
 
-        // --- 台灣假日資料 (完整版 2026-2035) ---
+        // --- Taiwan Holidays (2026-2035) ---
         const getTaiwanHoliday = (year, month, day) => {
             if (month === 0 && day === 1) return '元旦';
             if (month === 1 && day === 28) return '和平紀念日';
@@ -121,7 +122,7 @@
             return lunarHolidays[`${year}-${month}-${day}`];
         };
 
-        // --- 3. 獨立元件：人員設定行 (解決原本 document.getElementById 的 Anti-pattern) ---
+        // --- 3. StaffRow Component ---
         const StaffRow = ({ staff, onRemove, onToggleOff, onAddShift, onRemoveShift, onUpdateLocation }) => {
             const [selectedDate, setSelectedDate] = useState("");
             const [selectedLoc, setSelectedLoc] = useState("海總");
@@ -129,7 +130,7 @@
             const handleAddShift = () => {
                 if (selectedDate && selectedLoc) {
                     onAddShift(staff.id, parseInt(selectedDate), selectedLoc);
-                    setSelectedDate(""); // 建立後清空
+                    setSelectedDate(""); 
                 }
             };
 
@@ -203,9 +204,9 @@
             );
         };
 
-        // --- 主應用 ---
+        // --- Main App ---
         const App = () => {
-            // --- 狀態管理 (加入 LocalStorage 持久化) ---
+            // --- State Management ---
             const [staffList, setStaffList] = useState(() => {
                 const saved = localStorage.getItem('songhe_staff');
                 return saved ? JSON.parse(saved) : INITIAL_STAFF;
@@ -227,22 +228,22 @@
             const [autoAdjustMode, setAutoAdjustMode] = useState(false);
             const [toast, setToast] = useState(null);
 
-            // 當狀態改變時，寫入 LocalStorage
+            // Sync to LocalStorage
             useEffect(() => { localStorage.setItem('songhe_staff', JSON.stringify(staffList)); }, [staffList]);
             useEffect(() => { localStorage.setItem('songhe_date', currentDate.toISOString()); }, [currentDate]);
             useEffect(() => { localStorage.setItem('songhe_schedule', JSON.stringify(schedule)); }, [schedule]);
 
-            // Toast 提示功能
+            // Toast Function
             const showToast = useCallback((message, type = 'success') => {
                 setToast({ message, type });
                 setTimeout(() => setToast(null), 3000);
             }, []);
 
-            // 輔助函式
+            // Helpers
             const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
             const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
 
-            // 重新計算統計資料 (組件載入或 schedule 變更時自動執行)
+            // Calculate stats
             useEffect(() => {
                 const newStats = staffList.map(s => ({
                     ...s, offCount: 0, nightShiftCount: 0, haizongCount: 0, gaoyiCount: 0, recallCount: 0,
@@ -289,7 +290,7 @@
                 setSchedule({}); setLogs([]);
             };
 
-            // 核心排班邏輯相關函式 (保持原本邏輯)
+            // Core Scheduling Logic
             const buildStatsUpToDay = (currentSchedule, upToDay, currentStaffList) => {
                 let currentStats = currentStaffList.map(s => ({ 
                     ...s, offCount: 0, nightShiftCount: 0, haizongCount: 0, gaoyiCount: 0, consecutiveWork: 0, lastWorkDay: -10 
@@ -353,7 +354,7 @@
                     return arr;
                 };
 
-                // 將自動排班的基準休假目標設為 6 天
+                // Target off days
                 const STANDARD_LEAVE_LIMIT = 6; 
 
                 const sortForBalance = (arr, locField) => {
@@ -372,20 +373,19 @@
                     for (let candidate of candidates) {
                         if (selected.length >= count) break;
                         
-                        // 特殊規則：黃勇在(ID:6)與邱億銘(ID:14)不能同地點排班
+                        // Rule: ID 6 and ID 14 cannot be in the same location
                         const currentLocIds = [...existingTeam.map(s => s.id), ...selected.map(s => s.id)];
                         if ((candidate.id === 6 && currentLocIds.includes(14)) || 
                             (candidate.id === 14 && currentLocIds.includes(6))) {
-                            continue; // 發現衝突，跳過此候選人
+                            continue; 
                         }
                         
-                        // 特殊規則：王世通(1)、劉宗坤(2)、陳柏融(4) 不要同時出現在同一個單位的夜班
-                        // 實作為「嚴格拆開」：該單位目前名單中只要已有這三人中的任一人，其他人就不能再加入
+                        // Rule: ID 1, 2, 4 cannot be in the same location
                         const seniorGroup = [1, 2, 4];
                         if (seniorGroup.includes(candidate.id)) {
                             const countInLoc = currentLocIds.filter(id => seniorGroup.includes(id)).length;
                             if (countInLoc >= 1) {
-                                continue; // 該單位已經有他們之中的人了，跳過
+                                continue; 
                             }
                         }
 
@@ -470,7 +470,7 @@
                         if (s.preferredOff.includes(day + 1)) return false;
                         if (s.consecutiveWork >= 2) return false;
                         
-                        // 特殊規則：劉春榮 (ID: 3) 星期一、三、五 不能排夜班
+                        // Rule: ID 3 no night shifts on Mon, Wed, Fri
                         if (s.id === 3) {
                             const weekDay = new Date(year, month, day).getDay();
                             if ([1, 3, 5].includes(weekDay)) return false;
@@ -533,7 +533,7 @@
 
             const generateScheduleFull = () => generateScheduleFrom({}, 1, true);
 
-            // 拖曳處理
+            // Drag and Drop
             const handleDragStart = (e, day, category, staffId) => {
                 e.dataTransfer.setData('application/json', JSON.stringify({ day, category, staffId }));
                 setTimeout(() => e.target.classList.add('opacity-50'), 0);
@@ -622,7 +622,7 @@
                 }
             };
 
-            // 人員管理處理
+            // Staff Management
             const handleAddStaff = () => {
                 const nameInput = document.getElementById('newName');
                 const roleInput = document.getElementById('newRole');
@@ -645,7 +645,6 @@
                     if (s.id !== staffId) return s;
                     const currentOff = s.preferredOff;
                     if (currentOff.includes(day)) return { ...s, preferredOff: currentOff.filter(d => d !== day) };
-                    // 將手動選假上限提高至 10 天
                     if (currentOff.length >= 10) { showToast("每人每月最多選擇 10 天自選假", "warning"); return s; }
                     return { ...s, preferredOff: [...currentOff, day] };
                 }));
@@ -671,7 +670,7 @@
                 setStaffList(staffList.map(s => s.id === staffId ? { ...s, fixedLocation: location } : s));
             };
 
-            // 清除資料
+            // Reset Data
             const handleResetData = () => {
                 if(confirm("警告：這將會清除所有排班與人員設定，並恢復預設狀態。確定嗎？")) {
                     localStorage.removeItem('songhe_staff');
@@ -682,7 +681,7 @@
                 }
             };
 
-            // --- UI 渲染區 ---
+            // --- UI Rendering ---
             const renderCalendar = () => {
                 const year = currentDate.getFullYear();
                 const month = currentDate.getMonth();
@@ -720,7 +719,7 @@
                                             
                                             {daySchedule ? (
                                                 <div className="flex-1 flex flex-col gap-1.5 p-1.5 bg-slate-50/50">
-                                                    {/* 海總區塊 */}
+                                                    {/* Haizong Section */}
                                                     <div className="bg-blue-50/80 rounded-lg border border-blue-100 overflow-hidden shadow-sm">
                                                         <div className="text-[10px] font-bold text-blue-800 bg-blue-100/50 px-2 py-1 flex justify-between">
                                                             <span>📍 海總夜班</span>
@@ -739,7 +738,7 @@
                                                         </div>
                                                     </div>
 
-                                                    {/* 高醫區塊 */}
+                                                    {/* Gaoyi Section */}
                                                     <div className="bg-emerald-50/80 rounded-lg border border-emerald-100 overflow-hidden shadow-sm">
                                                         <div className="text-[10px] font-bold text-emerald-800 bg-emerald-100/50 px-2 py-1 flex justify-between">
                                                             <span>📍 高醫夜班</span>
@@ -758,7 +757,7 @@
                                                         </div>
                                                     </div>
 
-                                                    {/* 待命區塊 */}
+                                                    {/* Standby Section */}
                                                     <div className="bg-slate-100/80 rounded-lg border border-slate-200 flex-1 overflow-hidden">
                                                         <div className="text-[10px] font-bold text-slate-600 px-2 pt-1 flex items-center gap-1">
                                                             <Icons.Briefcase size={12}/> 待命 ({daySchedule.standby.length})
@@ -776,7 +775,7 @@
                                                         </div>
                                                     </div>
 
-                                                    {/* 召回區塊 */}
+                                                    {/* Recall Section */}
                                                     {(daySchedule.recall && daySchedule.recall.length > 0) && (
                                                         <div className="bg-orange-100/80 rounded-lg border border-orange-200 shadow-sm animate-pulse">
                                                             <div className="text-[10px] text-orange-700 font-bold px-2 pt-1 flex items-center gap-1">
@@ -792,7 +791,7 @@
                                                         </div>
                                                     )}
 
-                                                    {/* 休假區塊 */}
+                                                    {/* Off Section */}
                                                     <div className="mt-auto bg-rose-50 rounded-lg border border-rose-100 overflow-hidden shadow-sm">
                                                         <div className="flex justify-between items-center px-2 py-1 bg-rose-100/50">
                                                             <div className="text-[10px] text-rose-700 flex items-center gap-1 font-bold">
@@ -887,7 +886,6 @@
 
             return (
                 <div className="min-h-screen pb-12">
-                    {/* Header */}
                     <div className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-sm">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex flex-col md:flex-row md:items-center justify-between py-4 gap-4">
@@ -921,11 +919,9 @@
                         </div>
                     </div>
 
-                    {/* Main Content */}
                     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
                         {activeTab === 'calendar' && (
                             <div className="space-y-6 transform transition-all duration-300">
-                                {/* Control Panel */}
                                 <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
                                     <div className="flex items-center gap-2 text-sm text-slate-600">
                                         <Icons.Moon size={18} className="text-amber-500" />
@@ -946,7 +942,6 @@
                                     </div>
                                 </div>
 
-                                {/* System Logs */}
                                 {logs.length > 0 && (
                                     <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl text-sm text-amber-800 shadow-sm">
                                         <h3 className="font-bold flex items-center gap-2 mb-2"><Icons.Alert size={18} className="text-amber-600"/> 排班異常提示</h3>
@@ -956,7 +951,6 @@
                                     </div>
                                 )}
 
-                                {/* Calendar & Stats */}
                                 {renderCalendar()}
                                 {stats.length > 0 && renderStats()}
                             </div>
@@ -1024,7 +1018,6 @@
                         )}
                     </main>
 
-                    {/* Toast Notification */}
                     {toast && (
                         <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
                             <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border ${toast.type === 'error' ? 'bg-rose-50 border-rose-200 text-rose-800' : toast.type === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
